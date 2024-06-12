@@ -1,0 +1,21 @@
+
+
+html{
+	overflow-y: scroll;
+	&[data-os="windows"]{
+		&::-webkit-scrollbar-track-piece {
+
+		}
+		&::-webkit-scrollbar {
+			width: 8px;
+			height: 8px;
+            background-color: transparent;
+			// background-color: var(--album-color-light);
+		}
+		&::-webkit-scrollbar-thumb {
+			height: 40px;
+			background-color: var(--album-color-dark);
+            border-radius: 10px;
+		}
+	}
+}

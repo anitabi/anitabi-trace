@@ -1,0 +1,92 @@
+.player-box{
+    // overflow: hidden;
+
+    position: relative;
+    z-index: 0;
+    padding: 10px;
+    
+    box-shadow: 
+    0 1px 0 0 var(--album-color-alpha-02),
+    0 -2px 15px -3px var(--album-color-alpha-05);
+
+
+    
+    &::after{
+        content: '';
+        display: block;
+        clear: both;
+    }
+    .track-box{
+
+    }
+    
+    .album-cover{
+        float: left;
+        --cover-width: 80px;
+        cursor: pointer;
+        border-radius: 4px;
+        &.paused{
+            opacity: .5;
+        }
+    }
+    .track-info{
+        float: left;
+
+        padding: 5px 10px;
+        h3{
+            font-size: 18px;
+            margin: 0;
+        }
+        p{
+            margin: 0;
+            font-size: 12px;
+            opacity: 0.5;
+        }
+        a{
+            &.active{
+                font-weight: bold;
+            }
+        }
+    }
+    .ctrl-box{
+        float: right;
+        text-align: right;
+    }
+    .progress-bar{
+        clear: both;
+        position: relative;
+        width: 100%;
+        height: 5px;
+        cursor: pointer;
+        margin-bottom: 8px;
+        .progress{
+            pointer-events: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            border-radius: 2px;
+            min-width: 2px;
+            background-color: currentColor;
+            // transition: transform .1s ease;
+        }
+        time{
+            margin-top: -20px;
+            position: absolute;
+            right:8px;
+            // top:8px;
+            line-height: 12px;
+            font-size: 12px;
+            span{
+                display: inline-block;
+            }
+        }
+        
+        &:hover{
+            .progress{
+                // transform: scale(1,1.2);
+                box-shadow: 0 0 0 1px currentColor;
+            }
+        }
+    }
+}

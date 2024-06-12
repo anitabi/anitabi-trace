@@ -1,0 +1,92 @@
+.reza-albums {
+    overflow: hidden;
+    padding: 5px;
+    font-size: 14px;
+    margin: 0 auto;
+    .reza-album {
+        float: left;
+        --album-padding: 5px;
+        --cover-width: 260px;
+        box-sizing: border-box;
+
+        padding: var(--album-padding);
+        width: var(--cover-width);
+        height: calc(var(--cover-width) + 100px);
+
+        .reza-album-link{
+            pointer-events: none;
+            color: currentColor;
+            .album-cover{
+                pointer-events: auto;
+            }
+        }
+        .album-title-box{
+            pointer-events: none;
+            padding: 10px 0 4px;
+            .album-title{
+                display: inline;
+                line-height: 1;
+                pointer-events: auto;
+            }
+        }
+        .artist-names-box{
+            font-size: 12px;
+            opacity: 0.5;
+            pointer-events: none;
+            .artist-names{
+                display: inline;
+                pointer-events: auto;
+            }
+        }
+    }
+    @media (max-width: 768px) {
+        .reza-album {
+            width: 50%;
+            --cover-width: calc( 100vw / 2 - var(--album-padding) * 3 );
+            
+            font-size: 12px;
+        }
+    }
+    @media (min-width: 768px) {
+
+        .reza-album {
+            width: 33.3333%;
+            --cover-width: calc( 100vw / 3 - var(--album-padding) * 3 );
+        }
+    }
+    @media (min-width: 960px) {
+        .reza-album {
+            width: 25%;
+            --cover-width: calc( 100vw / 4 - var(--album-padding) * 3 );
+        }
+    }
+    @media (min-width: 1200px) {
+        .reza-album {
+            width: 20%;
+            --cover-width: calc( 100vw / 5 - var(--album-padding) * 3 );
+        }
+    }
+    @media (min-width: 1400px) {
+        .reza-album {
+            width: 16.6667%;
+            --cover-width: calc( 100vw / 6 - var(--album-padding) * 3 );
+        }
+    }
+
+    // 7 竖列
+    @media (min-width: 2200px) {
+        width: 1890px;
+        .reza-album {
+            width: 270px;
+            --cover-width: 260px;
+        }
+    }
+    @media (min-width: 2100px) {
+        width: 2160px;
+        .reza-album {
+            width: 270px;
+            --cover-width: 260px;
+        }
+    }
+
+}
