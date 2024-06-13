@@ -3,7 +3,7 @@
 
 </script>
 
-<h1>欢迎来到 Trace！</h1>
+<h1>aniTrace！</h1>
 <style>
 h1 {
     text-align: center;
