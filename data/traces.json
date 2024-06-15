@@ -4,27 +4,35 @@
 		"name":"热门综合",
 		"cover":"https://image.anitabi.cn/bangumi/11577.jpg?plan=h360",
 		"color":"#ff428e",
-		"points_api_url":"https://api.anitabi.cn/bangumi/328609/points/detail"
+		"points_api_url":"https://api.anitabi.cn/bangumi/328609/points/detail",
+		"geo":[35.94233,139.12460],
+		"zoom":7
 	},
 	{
 		"id": "bocchi-the-rock",
 		"name":"孤独摇滚",
 		"cover":"https://image.anitabi.cn/bangumi/328609.jpg?plan=h360",
 		"color":"#ff428e",
-		"points_api_url":"https://api.anitabi.cn/bangumi/328609/points/detail"
+		"points_api_url":"https://api.anitabi.cn/bangumi/328609/points/detail",
+		"geo":[35.311623,139.492950],
+		"zoom":9.65
 	},
 	{
 		"id": "ao-buta",
 		"name":"青春猪头",
 		"cover":"https://image.anitabi.cn/bangumi/240038.jpg?plan=h360",
 		"color":"#2239f9",
-		"points_api_url":"https://api.anitabi.cn/bangumi/240038/points/detail"
+		"points_api_url":"https://api.anitabi.cn/bangumi/240038/points/detail",
+		"geo":[35.311215,139.49077],
+		"zoom":7
 	},
 	{
 		"id": "nakineko",
 		"name":"想哭的我戴上了猫的面具",
 		"cover":"https://image.anitabi.cn/bangumi/299202.jpg?plan=h360",
 		"color":"#714739",
-		"points_api_url":"https://api.anitabi.cn/bangumi/299202/points/detail"
+		"points_api_url":"https://api.anitabi.cn/bangumi/299202/points/detail",
+		"geo":[34.33669,136.84051],
+		"zoom": 14
 	}
 ]
