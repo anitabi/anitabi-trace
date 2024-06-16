@@ -1,0 +1,10 @@
+# 忽略 node_modules 目录
+node_modules/
+
+# 忽略环境变量文件
+.env
+
+# 忽略其他不需要提交的文件和目录
+dist/
+build/
+*.log
