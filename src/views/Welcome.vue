@@ -3,7 +3,7 @@
         <span class="text-[36px]">欢迎</span>
         <span class="text-[48px]">不可溶的碳酸氢盐</span>
     </div>
-    <div class="absolute top-10 right-10 text-white text-[36px] underline-text">
+    <div class="absolute top-10 right-10 text-white text-[36px] underline-text pointer-events-auto">
         排行榜
     </div>
     <div class="flex flex-col text-center">
@@ -15,10 +15,10 @@
             <button class="w-[180px] h-[76px]
                 bg-gradient-to-r from-[#0073DE] to-[#00A5F1] text-white 
                 rounded-lg shadow-xl mr-[34px] text-[36px]
-                hover:translate-y-1">单人计时</button>
+                hover:translate-y-1 pointer-events-auto" @click="handleStartSinglePlayerGame">单人计时</button>
             <button class="w-[180px] h-[76px]
                 bg-gradient-to-r from-[#F14400] to-[#DEAA00] text-white 
-                rounded-lg shadow-xl text-[36px]">线上对战</button>
+                rounded-lg shadow-xl text-[36px] pointer-events-auto">线上对战</button>
         </div>
         <div class="absolute bottom-0 text-white text-[24px] mt-10 flex gap-5 w-full justify-center">
             anitabi&copy;2024 
@@ -30,6 +30,10 @@
 <script setup>
 import { css as titleFontCss } from '@/assets/fonts/YouSheBiaoTiHei.ttf?subsets'
 const QQ_GROUP_LINK = import.meta.env.VITE_ANITABI_QQ_GROUP_LINK;
+import { getGameInstance, Game } from '../services/game';
+const handleStartSinglePlayerGame = () => {
+    getGameInstance().state.start(Game.MODE.SINGLE);
+}
 </script>
 <style scoped>
 .underline-text::after{

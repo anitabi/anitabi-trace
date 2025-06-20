@@ -5,7 +5,7 @@
     <Map class="fixed top-0 left-0 w-screen h-screen"/>
     <!-- overlay -->
 
-    <div :style="{ fontFamily: fontCss.family }" class="fixed w-screen h-screen p-0 left-0 top-0 overlay-bg z-10">
+    <div :style="{ fontFamily: fontCss.family }" class="fixed w-screen h-screen p-0 left-0 top-0 z-10 text-white overlay-bg pointer-events-none">
       <component :is="views[viewStore.currentView]" />
     </div>
   </div>
@@ -16,11 +16,15 @@ import { css as fontCss } from './assets/fonts/SmileySans-Oblique-2.ttf?subsets'
 import { useViewStore } from './stores/view.js'
 
 import Welcome from './views/Welcome.vue'
+import Counter from './views/Counter.vue'
 import Map from './views/Map.vue'
+import Game from './views/Game.vue'
 const viewStore = useViewStore()
 
 const views = {
-  Welcome
+  Welcome,
+  Counter,
+  Game
 }
 </script>
 <style scoped>
