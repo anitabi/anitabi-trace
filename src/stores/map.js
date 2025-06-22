@@ -23,6 +23,9 @@ export const useMapStore = defineStore('map', {
         },
         initalize(windowHeight){
             this._map.scrollZoom.disable(); 
+            // TODO: find the reason why the earth still can be dragged
+            this._map.dragRotate.disable();
+            this._map.touchZoomRotate.disableRotation();
             this._map.on('style.load', () => {
                 this._map.setFog({
                     'horizon-blend': 0.02,

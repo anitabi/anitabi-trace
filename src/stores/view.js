@@ -4,15 +4,18 @@ export class VIEW_STATUS{
     static WELCOME = 'Welcome';
     static COUNTER = 'Counter';
     static GAME = 'Game';
+    static BANGUMI_SELECTION = 'BangumiSelection';
 }
 export const useViewStore = defineStore('view', {
     state: () => ({
         currentView: VIEW_STATUS.WELCOME,
-        currentViewData: {}
+        viewData: {} // { KEY: }
     }),
     actions: {
         changeView(newView) {
+            const oldView = this.currentView;
             this.currentView = newView;
+            delete this.viewData[oldView];
         }
     },
     getters: {

@@ -19,12 +19,14 @@ import Welcome from './views/Welcome.vue'
 import Counter from './views/Counter.vue'
 import Map from './views/Map.vue'
 import Game from './views/Game.vue'
+import BangumiSelection from './views/BangumiSelection.vue'
 const viewStore = useViewStore()
 
 const views = {
   Welcome,
   Counter,
-  Game
+  Game,
+  BangumiSelection
 }
 </script>
 <style scoped>

@@ -1,4 +1,6 @@
 // import { ArcBetweenPoints } from "../helpers/canvas";
+import { getDefaultBangumi } from "../apis/bangumi";
+import { ApiClient } from "../apis/api";
 import { useMapStore } from "../stores/map";
 import { useViewStore, VIEW_STATUS } from "../stores/view";
 
@@ -46,6 +48,15 @@ export class Game{
         }
         this.state = newState;
     }
+    prefetchBangumi(){
+        ApiClient.prefetch(getDefaultBangumi(), (_, error) => {
+            if(error){
+                console.error('Failed to prefetch bangumi:', error);
+            }else{
+                console.debug('Bangumi data prefetched successfully');
+            }
+        });
+    }
     showNextPoint() {
 
     }
@@ -64,6 +75,9 @@ class GameState{
     start(mode) {
         throw new Error('Method "start" must be implemented in derived class');
     }
+    back() {
+        throw new Error('Method "start" must be implemented in derived class');
+    }
     showGame() {
         throw new Error('Method "showGame" must be implemented in derived class');
     }
@@ -71,15 +85,32 @@ class GameState{
 export class GameStateIdle extends GameState{
     constructor(game){
         super(game);
+        // User may stop at the idle state for a while, which can be used for loading resources
+        this.game.prefetchBangumi();
     }
     start(mode) {
         if(!Object.values(Game.MODE).includes(mode)) {
             throw new Error('Invalid game mode');
         }   
         this.game.mode = mode;
+        this.game.viewStore.changeView(VIEW_STATUS.BANGUMI_SELECTION);
+        this.game.setState(new GameStateSelectBangumi(this.game));
+    }
+}
+export class GameStateSelectBangumi extends GameState{
+    constructor(game){
+        super(game);
+    }
+    start(bangumiId) {
+        // TODO: set the selected bangumi ID in the game instance
         this.game.viewStore.changeView(VIEW_STATUS.COUNTER);
         this.game.mapStore.stopAnimationAndJump();
         this.game.setState(new GameStateTMinus(this.game));
+    }
+
+    back() {
+        this.game.viewStore.changeView(VIEW_STATUS.WELCOME);
+        this.game.setState(new GameStateIdle(this.game));
     }
 }
 
