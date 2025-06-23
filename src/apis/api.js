@@ -88,7 +88,8 @@ export class ApiClient{
             }).catch(err => {
                 instance.requests[methodKey].forEach(req => req.reject(err));
                 throw err;
-            }).finally(() => {
+            })
+            .finally(() => {
                 delete instance.requests[methodKey];
             });
         };
@@ -102,10 +103,11 @@ export class ApiClient{
                     callbackData = data;
                 }).catch(err => {
                     callbackErr = err;
+                }).finally(() => {
+                    if (callback) {
+                        callback(callbackData, callbackErr);
+                    }
                 });
-                if (callback) {
-                    callback(callbackData, callbackErr);
-                }
             }, 0);
         }
     }
