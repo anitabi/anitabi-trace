@@ -1,11 +1,9 @@
+import { defineMock } from 'vite-plugin-mock-dev-server';
 import bangumiData from './bangumi.json'
 
-export default [
+export default defineMock([
   {
     url: '/api/bangumi',
-    method: 'get',
-    response: ({ query }) => {
-      return bangumiData;
-    },
-  },
-]
+    body: bangumiData
+  }
+]);

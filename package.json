@@ -12,7 +12,6 @@
     "@tailwindcss/vite": "^4.1.8",
     "@turf/turf": "^7.2.0",
     "mapbox-gl": "2.12.0",
-    "mockjs": "^1.1.0",
     "pinia": "^3.0.3",
     "tailwindcss": "^4.1.8",
     "vue": "^3.5.13"
@@ -21,6 +20,6 @@
     "@vitejs/plugin-vue": "^5.2.3",
     "vite": "^6.3.5",
     "vite-plugin-font": "^5.1.2",
-    "vite-plugin-mock": "^3.0.2"
+    "vite-plugin-mock-dev-server": "^1.8.7"
   }
 }
