@@ -1,26 +1,105 @@
 <template>
-    
+    <img v-if="pointImage.image" :src="pointImage.image" :class="`pointer-events-auto cursor-pointer fixed border-[4px] border-white rounded-lg shadow-md left-1/2 -translate-x-1/2
+        ${pointImage.state === 'full' ? 'w-[432px] top-[179px]' : 'w-[184px] top-[43px]'}`"
+        @click="pointImage.state = pointImage.state === 'full' ? 'minimal' : 'full'" />
     <h1 class="text-[24px] mt-[48px] text-center">单人计时</h1>
     <h1 class="text-[18px] mt-[5px] text-center">孤独摇滚！</h1>
     <div class="absolute top-[34px] left-[34px] flex flex-col items-start">
-        <span class="text-[72px]">0</span>
+        <div class="flex flex-row justify-start items-center">
+            <span class="text-[72px] mr-[15px]">{{ point }}</span>
+            <transition name="number-delta">
+                <span class="text-[48px]" :style="{ color: pointDeltaStyle.text, textShadow: pointDeltaStyle.textShadow }" v-if="pointDelta">{{ pointDelta }}</span>
+            </transition>
+        </div>
         <span class="text-[36px] -mt-5">Score</span>
     </div>
     <div class="absolute top-[34px] right-[34px] flex flex-col items-end">
-        <span class="text-[72px]">0</span>
+        <div class="flex flex-row justify-end items-center">
+            <transition name="number-delta">
+                <span class="text-[48px]" :style="{ color: timeDeltaStyle.text, textShadow: timeDeltaStyle.textShadow }" v-if="timeDelta">{{ timeDelta }}</span>
+            </transition>
+            <span class="text-[72px] ml-[15px]">{{ leftSeconds }}</span>
+        </div>
         <span class="text-[36px] -mt-5">Second</span>
     </div>
     <div class="absolute w-screen bottom-[10vh] h-auto text-center">
-        <button class="confirm-point-button pointer-events-auto" @click="handleConfirmPoint">确认标点</button>
+        <button class="confirm-point-button pointer-events-auto" @click="handleConfirmPoint" v-if="inSelection && mapStore.hasMarker">确认标点</button>
+    </div>
+    <div class="absolute bottom-[10vh] w-full flex justify-center">
+        <div class="relative before:bg-black/50 before:w-full before:h-full before:absolute before:inset-0
+        px-[29px] py-[18px] rounded-[10px] before:blur-[12px] max-w-[336px]" v-if="message !== ''">
+            <span class="text-[24px] z-[calc(var(--index)+1)] relative">{{ message }}</span>
+        </div>
     </div>
         
 </template>
-<script setup>
-import { getGameInstance } from '../services/game';
+<script setup lang="ts">
+import { computed, ref } from 'vue';
+import { Game, getGameInstance } from '../services/game';
+import { useMapStore } from '../stores/map';
+import { TMinusTimer } from '../helpers/timer';
+import type { UpdatePointData, Finished } from '../services/game';
+const game = getGameInstance();
+const message = ref('');
+const inSelection = ref(true);
+const point = ref(0);
+const leftSeconds = ref(0);
+const pointDelta = ref('');
+const timeDelta = ref('');
+const pointImage = ref({
+    state: 'full' as 'minimal' | 'full',
+    image: ''
+});
+const timer = new TMinusTimer(Game.GAME_TIME_SECONDS, () => {
+    inSelection.value = false;
+    game.state.gameOver();
+}).setUpdateCallback((seconds) => {
+    leftSeconds.value = seconds;
+});
+const mapStore = useMapStore();
 
-const handleConfirmPoint = () => {
-    getGameInstance().submitAnswer();
+timer.start();
+const nextPoint = (next: UpdatePointData | Finished) => {
+    switch(next.type) {
+        case 'updatePoint':
+            pointImage.value = { state: 'full', image: next.image };
+            break;
+        case 'finished':
+            game.state.gameOver();
+            break;
+    }
 };
+nextPoint(game.nextPoint());
+const handleConfirmPoint = async () => {
+    inSelection.value = false;
+    timer.pause();
+    const result = game.submitAnswer();
+    message.value = result.message;
+    if(result.point_delta) pointDelta.value = result.point_delta  > 0 ? `+${result.point_delta}` : `${result.point_delta}`;
+    if(result.time_delta) timeDelta.value = result.time_delta > 0 ? `+${result.time_delta}` : `${result.time_delta}`;
+    timer.change(result.time_delta || 0);
+    if(result.point_delta) point.value += result.point_delta;
+    setTimeout(() => {
+        inSelection.value = true;
+        message.value = pointDelta.value = timeDelta.value = '';
+        nextPoint(game.nextPoint());
+        timer.continue();
+    }, Game.GAME_POINT_WAIT_MS);
+};
+const textStyleGenerate = (textColor: string, shadowColor: string) => ({
+    text: textColor,
+    textShadow: `
+    0 1px 4px ${shadowColor},
+    0 -1px 4px ${shadowColor},
+    1px 0 4px ${shadowColor},
+    -1px 0 4px ${shadowColor}
+`});
+const pointDeltaStyle = computed(() => {
+    return pointDelta.value.startsWith('+') ? textStyleGenerate('#4CFF6F', '#00A259') : textStyleGenerate('#FF3A3A', '#BB2727');
+});
+const timeDeltaStyle = computed(() => {
+    return timeDelta.value.startsWith('+') ? textStyleGenerate('#4CFF6F', '#00A259') : textStyleGenerate('#FF3A3A', '#BB2727');
+});
 </script>
 <style scoped>
 .confirm-point-button{
@@ -38,4 +117,16 @@ const handleConfirmPoint = () => {
 .confirm-point-button:hover{
     transform: translateY(5px);
 }
+.number-delta-enter-active, .number-delta-leave-active {
+    transition: all 0.5s ease;
+}
+.number-delta-enter-from{
+    transform: translateY(-5px);
+    opacity: 0;
+}
+.number-delta-leave-to{
+    transform: translateY(5px);
+    opacity: 0;
+}
+
 </style>

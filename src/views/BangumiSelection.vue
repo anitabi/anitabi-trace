@@ -3,39 +3,53 @@
     <div class="absolute top-10 left-10 text-white flex flex-col underline-text pointer-events-auto">
         <span class="text-[36px]" @click="handleBack">返回</span>
     </div>
-    <div class="absolute top-[72px] w-full text-center text-white">
-        <h1 class="text-[72px]">单人计时</h1>
-        <h2 class="text-[24px] mt-[22px]">选择进行游戏的作品</h2>
-    </div>
-    <div class="absolute top-[30vh] w-full flex flex-col">
-        <div class="flex flex-row justify-center">
-            
-            <div v-if="data" v-for="item in data" :key="item.id" class="text-center">
-                <img :src="item.cover" class="w-[180px] h-[225px] m-4 rounded-lg shadow-lg border-[4px]" :style="{ borderColor: item.color }" />
-                <span class="normal-font-family text-[24px]">{{ item.name }}</span>
-            </div>
+    <div class="absolute top-[72px] flex flex-col w-full">
+        <div class="w-full text-center text-white">
+            <h1 class="text-[72px]">单人计时</h1>
+            <h2 class="text-[24px] mt-[22px]">选择进行游戏的作品</h2>
         </div>
-        <div v-if="loading">加载中...</div>
-        <div class="flex flex-row mt-20 m-auto">
-            <button class="w-[180px] h-[76px]
-                bg-gradient-to-r from-[#0073DE] to-[#00A5F1] text-white 
-                rounded-lg shadow-xl text-[36px]
-                hover:translate-y-1 pointer-events-auto" @click="handleStart">立即开始</button>
+        <div class="mt-[10vh] w-full flex flex-col">
+            <div class="flex flex-row justify-center">
+                
+                <div v-if="data" v-for="item in data" :key="item.id" class="text-center pointer-events-auto">
+                    <img :src="item.cover" 
+                        :class="'w-[180px] h-[225px] m-4 rounded-lg shadow-lg border-[4px] hover:scale-110 ' 
+                            + (bangumiId === item.id ? 'scale-110' : '')" :style="{ borderColor: item.color }" 
+                        @click="bangumiId = item.id"
+                        />
+                    <span class="normal-font-family text-[24px]">{{ item.name }}</span>
+                </div>
+            </div>
+            <div v-if="loading" class="m-auto text-2xl">加载中...</div>
+            <div v-if="error" class="m-auto text-2xl">出错了 qaq</div>
+            <div class="flex flex-row mt-20 m-auto">
+                <button :class="'w-[180px] h-[76px] text-white rounded-lg shadow-xl text-[36px] pointer-events-auto '  +
+                (!buttonDisabled ? 'bg-gradient-to-r from-[#0073DE] to-[#00A5F1] hover:translate-y-1' : 'bg-slate-500') " @click="handleStart" :disabled="buttonDisabled">立即开始</button>
+            </div>
         </div>
     </div>
 </template>
-<script setup>
-import { useRequest } from '../apis/api';
-import { getDefaultBangumi } from '../apis/bangumi';
+<script setup lang="ts">
+import { computed, ref } from 'vue';
+import { useRequest } from '../apis/api.ts';
+import { getDefaultBangumi } from '../apis/bangumi.ts';
 import { getGameInstance } from '../services/game';
+
 
 const { data, error, loading } = useRequest(getDefaultBangumi());
 
+const buttonDisabled = computed(() => {
+    return !data.value || !bangumiId.value;
+});
+const bangumiId = ref(null as string | null);
 const handleBack = () => {
     getGameInstance().state.back();
 };
 const handleStart = () => {
-    getGameInstance().state.start();
+    if(!bangumiId.value) {
+        return;
+    }
+    getGameInstance().state.select(bangumiId.value);
 };
 </script>
 <style scoped>

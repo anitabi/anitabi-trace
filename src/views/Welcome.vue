@@ -27,12 +27,12 @@
         </div>
     </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { css as titleFontCss } from '@/assets/fonts/YouSheBiaoTiHei.ttf?subsets'
 const QQ_GROUP_LINK = import.meta.env.VITE_ANITABI_QQ_GROUP_LINK;
-import { getGameInstance, Game } from '../services/game';
+import { getGameInstance } from '../services/game';
 const handleStartSinglePlayerGame = () => {
-    getGameInstance().state.start(Game.MODE.SINGLE);
+    getGameInstance().state.init('SINGLE');
 }
 </script>
 <style scoped>

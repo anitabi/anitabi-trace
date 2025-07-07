@@ -1,6 +1,9 @@
 import * as turf from "@turf/turf";
+import { deepCopy } from "./common";
+import type { AnyLayer, Map } from "mapbox-gl";
+import type { Feature, FeatureCollection } from "geojson";
 
-export const spinGlobeFunc = (map, secondsPerRevolution = 240, maxSpinZoom = 5, slowSpinZoom = 3) => {
+export const spinGlobeFunc = (map: Map, secondsPerRevolution = 240, maxSpinZoom = 5, slowSpinZoom = 3) => {
     return () => {
         const zoom = map.getZoom();
         if (zoom < maxSpinZoom) {
@@ -19,7 +22,7 @@ export const spinGlobeFunc = (map, secondsPerRevolution = 240, maxSpinZoom = 5, 
         }
     }
 };
-export const loadSvg = (map, name, src, size) => {
+export const loadSvg = (map: Map, name: string, src: string, size: number): Promise<void> => {
     return new Promise((resolve, reject) => {
         const img = new Image(size, size);
         img.onload = () => {
@@ -33,20 +36,21 @@ export const loadSvg = (map, name, src, size) => {
     });
 };
 export const buildArcLine = (
-  [startLng, startLat],
-  [endLng, endLat]
+  [startLng, startLat]: [number, number],
+  [endLng, endLat]: [number, number]
 ) => {
     /*
                \  /       Draw a arc between two points with some curvature
                 \/
                 /
     */
-
+    const p1 = turf.point([startLng, startLat]);
+    const p2 = turf.point([endLng, endLat]);
     const midPoint = turf.center(turf.featureCollection([p1, p2]));
     const mainBearing = turf.rhumbBearing(p1, p2);
 
-    const perpendicularBearing = mainBearing - 90;
-
+    let perpendicularBearing = mainBearing - 90;
+    if (!(perpendicularBearing >= -90 && perpendicularBearing <=90)) perpendicularBearing += perpendicularBearing > 0 ? -180 : 180;
     const pointDistance = turf.distance(p1, p2, {units: 'kilometers'});
     const offsetDistance = pointDistance * 0.1;
     const pointOnPerpendicular = turf.rhumbDestination(
@@ -68,16 +72,17 @@ export const buildArcLine = (
         },
         },
         { resolution: 2500 }
-    ), sourceTextLabelsGenerate([pointOnPerpendicular.geometry.coordinates, `${pointDistance.toFixed(1)}km`, perpendicularBearing])];
+    ), sourceTextLabelsGenerate([[pointOnPerpendicular.geometry.coordinates as [number, number], `${pointDistance.toFixed(1)}km`, perpendicularBearing]]).data, pointDistance];
 };
 export const sourcePointsDef = {
-    type: 'geojson',
+    type: 'geojson' as const,
     data: {
         type: 'FeatureCollection',
         features: []
-    }
+    } as FeatureCollection<GeoJSON.Geometry, { category: string }>
 };
 
+type PointWithCategory = [[number, number], string];
 /**
  * Generates source points from a list of points with categories.
  *
@@ -86,8 +91,8 @@ export const sourcePointsDef = {
  *   - The second item is a string representing the category.
  * @returns {Object} The generated geojson source for points.
  */
-export const sourcePointsGenerate = (points) => {
-    let geojson = sourcePointsDef;
+export const sourcePointsGenerate = (points: PointWithCategory[]) => {
+    let geojson = deepCopy(sourcePointsDef);
     geojson.data.features = points.map(([coords, category]) => {
         return {
             type: 'Feature',
@@ -103,7 +108,7 @@ export const sourcePointsGenerate = (points) => {
     return geojson;
 };
 export const sourceConnectionDef = {
-    'type': 'geojson',
+    'type': 'geojson' as const,
     'data': {
         'type': 'Feature',
         'properties': {},
@@ -111,14 +116,14 @@ export const sourceConnectionDef = {
             'type': 'LineString',
             'coordinates': []
         }
-    }
+    } as Feature
 };
 export const sourceTextLabelsDef = {
-    type: 'geojson',
+    type: 'geojson' as const,
     data: {
         type: 'FeatureCollection',
         features: []
-    }
+    } as FeatureCollection
 };
 
 /**
@@ -130,8 +135,9 @@ export const sourceTextLabelsDef = {
  *   - rotate {number} - The rotation angle for the label.
  * @returns {Object} A GeoJSON object with features representing the provided points and their associated text and rotation.
  */
-export const sourceTextLabelsGenerate = (points) => {
-    let geojson = sourceTextLabelsDef;
+type TextLabel = [[number, number], string, number];
+export const sourceTextLabelsGenerate = (points: TextLabel[]) => {
+    let geojson = deepCopy(sourceTextLabelsDef);
     geojson.data.features = points.map(([coords, text, rotate]) => {
         return {
             type: 'Feature',
@@ -147,7 +153,7 @@ export const sourceTextLabelsGenerate = (points) => {
     });
     return geojson;
 };
-export const layerConnectionDef = {
+export const layerConnectionDef: AnyLayer = {
     id: 'connection-layer',
     type: 'line',
     source: 'connection',
@@ -161,7 +167,7 @@ export const layerConnectionDef = {
         'line-dasharray': [1, 2],
     }
 };
-export const layerPointsDef = {
+export const layerPointsDef: AnyLayer = {
     id: 'points-layer',
     source: 'points',
     type: 'circle',
@@ -171,7 +177,7 @@ export const layerPointsDef = {
         'circle-stroke-color': '#FFFFFF'
     }
 };
-export const layerPinIconsDef = {
+export const layerPinIconsDef: AnyLayer = {
     id: 'pin-icons-layer',
     source: 'points',
     type: 'symbol',
@@ -181,7 +187,7 @@ export const layerPinIconsDef = {
         'icon-anchor': 'bottom'
     }
 };
-export const layerTextLabelsDef = {
+export const layerTextLabelsDef: AnyLayer = {
     id: 'text-labels-layer',
     type: 'symbol',
     source: 'text-labels',
@@ -200,3 +206,4 @@ export const layerTextLabelsDef = {
         'text-halo-width': 2
     }
 };
+export const reverseCoordinate = ([lat, lng]: [number, number]): [number, number] => [lng, lat];

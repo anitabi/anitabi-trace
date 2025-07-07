@@ -7,28 +7,28 @@
 
             <span :key="count" class="text-[210px] absolute">{{ count > 0 ? count : "Start!" }}</span>
         </transition>
-        <p class="absolute pt-70 text-[24px]">{{ count > 0 ? messages[count] : "" }}</p>
+        <p class="absolute pt-70 text-[24px]">{{ messages[count] || "" }}</p>
     </div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { getGameInstance } from '../services/game.js'
 const count = ref(3)
 
-const messages = {
+const messages: Record<number, string> = {
     1: "慢一点多想想！偏差过远会扣时",
     2: "标记一公里内有奖励时间！",
     3: "60秒内标尽可能标准更多点！"
 };
 
-const gameInstance = getGameInstance();
+const game = getGameInstance();
 onMounted(() => {
     const timer = setInterval(() => {
         if (count.value > 0) {
             count.value--;
         } else {
             clearInterval(timer);
-            getGameInstance().state.showGame();
+            game.state.start();
 
         }
     }, 1000)

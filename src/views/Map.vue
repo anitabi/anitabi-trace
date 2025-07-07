@@ -1,9 +1,10 @@
 <template>
     <div ref="mapContainer"></div>
 </template>
-<script setup>
+<script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import mapboxgl from 'mapbox-gl';
+import "mapbox-gl/dist/mapbox-gl.css";
 import { useMapStore } from '../stores/map';
 import { throttle } from '../helpers/common';
 

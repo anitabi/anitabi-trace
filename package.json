@@ -5,16 +5,21 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vue-tsc -b && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.8",
     "@turf/turf": "^7.2.0",
+    "@types/geojson": "^7946.0.16",
+    "@types/mapbox-gl": "^3.4.1",
+    "@vue/tsconfig": "^0.7.0",
     "mapbox-gl": "2.12.0",
     "pinia": "^3.0.3",
     "tailwindcss": "^4.1.8",
-    "vue": "^3.5.13"
+    "typescript": "^5.8.3",
+    "vue": "^3.5.13",
+    "vue-tsc": "^3.0.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.3",
