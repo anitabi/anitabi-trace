@@ -22,7 +22,8 @@ import Game from './views/Game.vue'
 import BangumiSelection from './views/BangumiSelection.vue'
 import Statistics from './views/Statistics.vue'
 import { computed, type Component } from 'vue'
-const viewStore = useViewStore()
+
+const viewStore = useViewStore();
 
 const views: Record<ViewStatus, Component> = {
   WELCOME: Welcome,
@@ -30,15 +31,15 @@ const views: Record<ViewStatus, Component> = {
   GAME: Game,
   BANGUMI_SELECTION: BangumiSelection,
   STATISTICS: Statistics
-}
+};
 
-const isDeepOverlay = computed(() => viewStore.currentView === 'STATISTICS')
+const isDeepOverlay = computed(() => viewStore.deepOverlay);
 </script>
 <style scoped>
 .overlay-bg{
   background: linear-gradient(180deg, #102A51 2%, rgba(11, 60, 134, 0.4724) 44%, rgba(11, 60, 134, 0.153) 71%, rgba(0, 70, 175, 0) 100%);
 }
 .overlay-bg-deep{
-  background: linear-gradient(180deg, rgba(53, 91, 149, 0) 3%, #355B95 100%);
+  background: linear-gradient(180deg, #102A51 2%, rgba(11, 60, 134, 0.4724) 44%);
 }
 </style>

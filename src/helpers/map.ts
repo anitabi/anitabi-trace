@@ -18,7 +18,7 @@ export const spinGlobeFunc = (map: Map, secondsPerRevolution = 240, maxSpinZoom 
             center.lng -= distancePerSecond;
             // Smoothly animate the map over one second.
             // When this animation is complete, it calls a 'moveend' event.
-            map.easeTo({ center, duration: 1000, easing: (n) => n });
+            setTimeout(() => map.easeTo({ center, duration: 800, easing: (n) => n, essential: true }), 0);
         }
     }
 };
@@ -136,14 +136,15 @@ export const sourceTextLabelsDef = {
  * @returns {Object} A GeoJSON object with features representing the provided points and their associated text and rotation.
  */
 type TextLabel = [[number, number], string, number];
-export const sourceTextLabelsGenerate = (points: TextLabel[]) => {
+export const sourceTextLabelsGenerate = (points: TextLabel[], anchor = 'bottom') => {
     let geojson = deepCopy(sourceTextLabelsDef);
     geojson.data.features = points.map(([coords, text, rotate]) => {
         return {
             type: 'Feature',
             properties: {
                 text,
-                rotate
+                rotate,
+                anchor
             },
             geometry: {
                 type: 'Point',
@@ -194,7 +195,7 @@ export const layerTextLabelsDef: AnyLayer = {
     layout: {
         'text-field': ['get', 'text'],
         'text-size': 16,
-        'text-anchor': 'bottom',
+        'text-anchor': ['get', 'anchor'],
         'text-radial-offset': 0.5,
         'text-justify': 'center',
         'text-rotate': ['get', 'rotate'],
@@ -207,3 +208,10 @@ export const layerTextLabelsDef: AnyLayer = {
     }
 };
 export const reverseCoordinate = ([lat, lng]: [number, number]): [number, number] => [lng, lat];
+export const numberDistanceToString = (distance: number): string => {
+    if (distance < 1) {
+        return `${(distance * 1000).toFixed(0)}m`;
+    } else {
+        return `${(distance).toFixed(1)}km`;
+    }
+}

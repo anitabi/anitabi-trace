@@ -33,9 +33,9 @@
 import { computed, ref } from 'vue';
 import { useRequest } from '../apis/api.ts';
 import { getDefaultBangumi } from '../apis/bangumi.ts';
-import { getGameInstance } from '../services/game';
+import { useGameStore } from '../stores/game.ts';
 
-
+const gameStore = useGameStore();
 const { data, error, loading } = useRequest(getDefaultBangumi());
 
 const buttonDisabled = computed(() => {
@@ -43,13 +43,13 @@ const buttonDisabled = computed(() => {
 });
 const bangumiId = ref(null as string | null);
 const handleBack = () => {
-    getGameInstance().state.back();
+    gameStore.game.state.back();
 };
 const handleStart = () => {
     if(!bangumiId.value) {
         return;
     }
-    getGameInstance().state.select(bangumiId.value);
+    gameStore.game.state.select(bangumiId.value);
 };
 </script>
 <style scoped>

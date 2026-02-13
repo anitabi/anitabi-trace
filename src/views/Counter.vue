@@ -1,6 +1,6 @@
 <template>
-    <h1 class="text-[24px] mt-[48px] text-center">单人计时</h1>
-    <h1 class="text-[18px] mt-[5px] text-center">孤独摇滚！</h1>
+    <h1 class="text-[24px] mt-[48px] text-center">{{ gameStore.game.mode === 'SINGLE' ? '单人模式' : '线上对战' }}</h1>
+    <h1 class="text-[18px] mt-[5px] text-center">{{ gameStore.game.bangumi?.name }}</h1>
 
     <div class="absolute inset-0 flex items-center justify-center">
         <transition name="countdown">
@@ -12,7 +12,9 @@
 </template>
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getGameInstance } from '../services/game.js'
+import { useGameStore } from '../stores/game';
+
+const gameStore = useGameStore();
 const count = ref(3)
 
 const messages: Record<number, string> = {
@@ -21,14 +23,13 @@ const messages: Record<number, string> = {
     3: "60秒内标尽可能标准更多点！"
 };
 
-const game = getGameInstance();
 onMounted(() => {
     const timer = setInterval(() => {
         if (count.value > 0) {
             count.value--;
         } else {
             clearInterval(timer);
-            game.state.start();
+            gameStore.game.state.start();
 
         }
     }, 1000)

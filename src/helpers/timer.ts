@@ -39,6 +39,10 @@ export class TMinusTimer{
         this.pauseTimeToRound = performance.now() - this.lastIntegerPerformanceTime!;
         this.#clearTimer();
     }
+    stop() {
+        if(!this.timer) return;
+        this.#clearTimer();
+    }
     continue() {
         if(this.timer || !this.pauseTimeToRound) throw new Error('Timer is not paused');
         setTimeout(() => {

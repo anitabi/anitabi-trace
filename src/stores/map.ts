@@ -1,9 +1,9 @@
 import { defineStore } from "pinia";
 import { markRaw } from "vue";
-import { buildArcLine, sourceConnectionDef, loadSvg, sourcePointsDef, spinGlobeFunc, sourceTextLabelsDef, layerConnectionDef, layerPointsDef, layerTextLabelsDef, sourcePointsGenerate } from "../helpers/map";
+import { buildArcLine, sourceConnectionDef, loadSvg, sourcePointsDef, spinGlobeFunc, sourceTextLabelsDef, layerConnectionDef, layerPointsDef, layerTextLabelsDef, sourcePointsGenerate, sourceTextLabelsGenerate, numberDistanceToString } from "../helpers/map";
 import pinIcon from '../assets/images/pin.svg';
-import mapboxgl from 'mapbox-gl';
-import type { GeoJSONSource, Map, MapboxOptions, MapMouseEvent, Marker } from "mapbox-gl";
+import mapboxgl, { Marker } from 'mapbox-gl';
+import type { GeoJSONSource, Map, MapboxOptions, MapMouseEvent } from "mapbox-gl";
 
 const checkMap: (map: Map | null) => asserts map is Map = (map) => {
     if (map === null) {
@@ -22,11 +22,16 @@ export interface MapStore {
     clearDraw(): void;
     disableGameInteraction(): void;
     addPoints(points: [ [number, number], string ][]): void;
+    showPointsAsMarkerWithText(points: [ [number, number], number, number ][]): void;
+}
+interface MapWindow extends Window {
+    map?: Map;
 }
 export const useMapStore = defineStore('map', {
     state: () => ({
         _map: null as Map | null,
         marker: null as Marker | null,
+        displayMarkers: [] as Marker[],
         spinGlobeFunc: null as (() => void) | null,
         clickEvent: null as ((e: MapMouseEvent) => void) | null,
         inAnimation: true,
@@ -45,6 +50,7 @@ export const useMapStore = defineStore('map', {
     actions: {
         setupMap(map: Map) {
             this._map = markRaw(map);            
+            if(import.meta.env.DEV) (window as MapWindow).map = this._map; // for debugging
         },
         initalize(windowHeight: number){
             checkMap(this._map);
@@ -77,19 +83,16 @@ export const useMapStore = defineStore('map', {
         },
         stopAnimationAndJump(center: [number, number], zoom: number){
             checkMap(this._map);
-            if(!this.inAnimation){
-                return;
+            if(this.inAnimation){
+                if(this.spinGlobeFunc) this._map.off('moveend', this.spinGlobeFunc);
+                this._map.stop();
+                this.inAnimation = false;
             }
-            if(this.spinGlobeFunc) this._map.off('moveend', this.spinGlobeFunc);
-            this._map.stop();
-            this._map.easeTo({
-                padding: { top: 0, left: 0, bottom: 0, right: 0 },
-                duration: 1000
-            });
-            this.inAnimation = false;
             this._map.flyTo({
                 center,
-                zoom
+                zoom,
+                padding: { top: 0, left: 0, bottom: 0, right: 0 },
+                essential: true
             });
 
         },
@@ -160,6 +163,28 @@ export const useMapStore = defineStore('map', {
         addPoints(points: [ [number, number], string ][]) {
             checkMap(this._map);
             (this._map.getSource('points') as GeoJSONSource).setData(sourcePointsGenerate(points).data);
+        },
+        showPointsAsMarkerWithText(points: [ [number, number], number, number ][]) {
+            checkMap(this._map);
+            points.forEach(([coord]) => {
+                const marker = new mapboxgl.Marker({
+                    color: "#FF428E"
+                }).setLngLat(coord);
+                this.displayMarkers.push(marker);
+                marker.addTo(this._map!);
+            });
+            (this._map.getSource('text-labels') as GeoJSONSource).setData(sourceTextLabelsGenerate(
+                [...points.map(([coord, distance ]): [[number, number], string, number] => [coord, numberDistanceToString(distance), 0])],
+                'top'
+            ).data);
+            const bound = new mapboxgl.LngLatBounds();
+
+            points.forEach(([coord]) => {
+                bound.extend(coord);
+            });
+            this._map.fitBounds(bound, {
+                padding: Math.min(window.innerHeight, window.innerWidth) * 0.1,
+            });
         }
     }
 });

@@ -2,37 +2,10 @@
 import { getDefaultBangumi } from "../apis/bangumi";
 import type { DefaultBangumi, PointDetail } from "../apis/bangumi";
 import { api, ApiClient } from "../apis/api";
-import { useMapStore } from "../stores/map";
 import type { MapStore } from '../stores/map';
-import { useViewStore } from "../stores/view";
 import type { ViewStore } from '../stores/view';
-import { reverseCoordinate } from "../helpers/map";
+import { numberDistanceToString, reverseCoordinate } from "../helpers/map";
 import { preloadImage } from "../helpers/preload";
-let gameInstance: Game | null = null;
-
-/**
- * Initializes the game.
- * 
- * This method should be called after `app.use(pinia)`.
- *
- * @function
- * @returns {void}
- */
-export const initializeGame = () => {
-    if(gameInstance){
-        throw new Error('Game is already initialized');
-    }
-    const viewStore = useViewStore();
-    const mapStore = useMapStore();
-    gameInstance = new Game(viewStore, mapStore);
-};
-
-export const getGameInstance = () => {
-    if(!gameInstance){
-        throw new Error('Game is not initialized. Call initializeGame() first.');
-    }
-    return gameInstance;
-};
 interface GameWindow extends Window {
     cheating?: boolean;
 }
@@ -63,9 +36,15 @@ type RewardAndPunishment = {
     point_delta?: number;
     message: MessageGenerator;
 };
+interface PointExtended extends PointDetail {
+    extend?: {
+        distance: number;
+        point_delta: number;
+    }
+}
 export class Game{
     static readonly GAME_POINT_WAIT_MS = 2000;
-    static readonly GAME_TIME_SECONDS = 1200;
+    static readonly GAME_TIME_SECONDS = 15;
     static readonly REWARD_AND_PUNISHMENT: Record<
         'TIME_DEDUCTION' | 'POINT_ADDITION' | 'POINT_ADDITION_TIME_ADDITION' | 'POINT_ADDITION_TIME_ADDITION_PLUS', 
         RewardAndPunishment> = {
@@ -78,13 +57,18 @@ export class Game{
     };
     bangumiData: DefaultBangumi[] = [];
     bangumiId: string | null = null;
-    points: PointDetail[] = [];
+    points: PointExtended[] = [];
     viewStore: ViewStore;
     mapStore: MapStore;
     currentIndex: number = 0;
     mode: GameMode = "SINGLE";
     point: number = 0;
     state: GameState;
+    bangumi: DefaultBangumi | null = null;
+    statistics?: {
+        leftSeconds: number;
+        point: number;
+    }
     constructor(viewStore: ViewStore, mapStore: MapStore){
         this.viewStore = viewStore
         this.mapStore = mapStore;
@@ -108,12 +92,12 @@ export class Game{
         if(!this.bangumiData) {
             throw new Error('Bangumi data is not loaded yet');
         }
-        const url = this.bangumiData.find(b => b.id === id)?.points_api_url;
+        const url = this.bangumi?.points_api_url;
         if (url) ApiClient.prefetch<PointDetail[]>(api.get(url, { noBaseUrl: true }), (data, error) => {
             if(error){
                 console.error(`Failed to prefetch bangumi detail for id ${id}:`, error);
             }else{
-                this.points = data!;
+                this.points = data!.map(point => ({ distance: 0, point_delta: 0, ...point }));
                 this.points.forEach(point => {
                     if(point.image) preloadImage(point.image);
                 });
@@ -153,7 +137,7 @@ export class Game{
                 message: s.message({ 
                     t: s.time_delta || 0, 
                     s: s.point_delta || 0, 
-                    distance: distance < 1 ? `${(distance * 1000).toFixed(0)} 米` : `${distance.toFixed(1)} 公里` 
+                    distance: numberDistanceToString(distance)
                 }) 
             });
     }
@@ -166,6 +150,10 @@ export class Game{
         const judgement = this.judgeDistance(distance);
         
         if(judgement.point_delta) this.point += judgement.point_delta;
+        this.points[this.currentIndex].extend = {
+            distance,
+            point_delta: judgement.point_delta || 0
+        };
         return { type: 'update', ... judgement }
     }
 }
@@ -187,7 +175,7 @@ class GameState{
     start() {
         throw new Error('Method "showGame" must be implemented in derived class');
     }
-    gameOver() {
+    gameOver(_leftSeconds: number) {
         throw new Error('Method "gameOver" must be implemented in derived class');
     }
 }
@@ -214,6 +202,7 @@ export class GameStateSelectBangumi extends GameState{
         if(!currentBangumi) {
             throw new Error(`Bangumi with id ${bangumiId} not found`);
         }
+        this.game.bangumi = currentBangumi;
         this.game.mapStore.stopAnimationAndJump(reverseCoordinate(currentBangumi.geo), currentBangumi.zoom);
         this.game.setState(new GameStateTMinus(this.game));
     }
@@ -242,8 +231,21 @@ export class GameStateWorking extends GameState{
         super(game);
         this.game.mapStore.enableGameInteraction();
     }
-    gameOver() {
+    gameOver(leftSeconds: number) {
         console.debug('Game over');
+        this.game.statistics = {
+            leftSeconds,
+            point: this.game.point
+        };
+        this.game.mapStore.clearDraw();
         this.game.mapStore.disableGameInteraction();
+        this.game.viewStore.setDeepOverlay(true);
+        setTimeout(() => {
+            this.game.viewStore.changeView('STATISTICS');
+            this.game.mapStore.showPointsAsMarkerWithText(
+                this.game.points
+                    .filter((p): p is Omit<PointExtended, 'extend'> & { extend: { distance: number, point_delta: number } } => !!p.extend)
+                    .map(p => [reverseCoordinate(p.geo), p.extend.distance, p.extend.point_delta]));
+        }, 1000);
     }
 }

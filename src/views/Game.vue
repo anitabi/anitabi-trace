@@ -1,9 +1,9 @@
 <template>
-    <img v-if="pointImage.image" :src="pointImage.image" :class="`pointer-events-auto cursor-pointer fixed border-[4px] border-white rounded-lg shadow-md left-1/2 -translate-x-1/2
+    <img v-if="inSelection && pointImage.image" :src="pointImage.image" :class="`pointer-events-auto cursor-pointer fixed border-[4px] border-white rounded-lg shadow-md left-1/2 -translate-x-1/2
         ${pointImage.state === 'full' ? 'w-[432px] top-[179px]' : 'w-[184px] top-[43px]'}`"
         @click="pointImage.state = pointImage.state === 'full' ? 'minimal' : 'full'" />
-    <h1 class="text-[24px] mt-[48px] text-center">单人计时</h1>
-    <h1 class="text-[18px] mt-[5px] text-center">孤独摇滚！</h1>
+    <h1 class="text-[24px] mt-[48px] text-center">{{ gameStore.game.mode === 'SINGLE' ? '单人模式' : '线上对战' }}</h1>
+    <h1 class="text-[18px] mt-[5px] text-center">{{ gameStore.game.bangumi?.name }}</h1>
     <div class="absolute top-[34px] left-[34px] flex flex-col items-start">
         <div class="flex flex-row justify-start items-center">
             <span class="text-[72px] mr-[15px]">{{ point }}</span>
@@ -31,15 +31,20 @@
             <span class="text-[24px] z-[calc(var(--index)+1)] relative">{{ message }}</span>
         </div>
     </div>
+    <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+        v-if="showOver">
+        <p class="text-[210px]">Over.</p>
+    </div>
         
 </template>
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { Game, getGameInstance } from '../services/game';
+import { Game } from '../services/game';
 import { useMapStore } from '../stores/map';
 import { TMinusTimer } from '../helpers/timer';
 import type { UpdatePointData, Finished } from '../services/game';
-const game = getGameInstance();
+import { useGameStore } from '../stores/game';
+const gameStore = useGameStore();
 const message = ref('');
 const inSelection = ref(true);
 const point = ref(0);
@@ -50,10 +55,14 @@ const pointImage = ref({
     state: 'full' as 'minimal' | 'full',
     image: ''
 });
-const timer = new TMinusTimer(Game.GAME_TIME_SECONDS, () => {
+const showOver = ref(false);
+const onGameFinish = () => {
     inSelection.value = false;
-    game.state.gameOver();
-}).setUpdateCallback((seconds) => {
+    showOver.value = true;
+    timer.stop();
+    gameStore.game.state.gameOver(timer.leftSeconds);
+};
+const timer = new TMinusTimer(Game.GAME_TIME_SECONDS, onGameFinish).setUpdateCallback((seconds) => {
     leftSeconds.value = seconds;
 });
 const mapStore = useMapStore();
@@ -65,15 +74,15 @@ const nextPoint = (next: UpdatePointData | Finished) => {
             pointImage.value = { state: 'full', image: next.image };
             break;
         case 'finished':
-            game.state.gameOver();
+            onGameFinish();
             break;
     }
 };
-nextPoint(game.nextPoint());
+nextPoint(gameStore.game.nextPoint());
 const handleConfirmPoint = async () => {
     inSelection.value = false;
     timer.pause();
-    const result = game.submitAnswer();
+    const result = gameStore.game.submitAnswer();
     message.value = result.message;
     if(result.point_delta) pointDelta.value = result.point_delta  > 0 ? `+${result.point_delta}` : `${result.point_delta}`;
     if(result.time_delta) timeDelta.value = result.time_delta > 0 ? `+${result.time_delta}` : `${result.time_delta}`;
@@ -82,7 +91,7 @@ const handleConfirmPoint = async () => {
     setTimeout(() => {
         inSelection.value = true;
         message.value = pointDelta.value = timeDelta.value = '';
-        nextPoint(game.nextPoint());
+        nextPoint(gameStore.game.nextPoint());
         timer.continue();
     }, Game.GAME_POINT_WAIT_MS);
 };
