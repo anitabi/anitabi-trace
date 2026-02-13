@@ -88,12 +88,18 @@ export const useMapStore = defineStore('map', {
                 this._map.stop();
                 this.inAnimation = false;
             }
-            this._map.flyTo({
-                center,
-                zoom,
-                padding: { top: 0, left: 0, bottom: 0, right: 0 },
-                essential: true
+            const flyToPoint = () => {
+                this._map.flyTo({
+                    center,
+                    zoom,
+                    padding: { top: 0, left: 0, bottom: 0, right: 0 },
+                    essential: true
+                });
+            }
+            this._map.once('idle', () => {
+                flyToPoint();
             });
+            flyToPoint();
 
         },
         // enableInteraction(){
