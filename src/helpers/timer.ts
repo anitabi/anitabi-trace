@@ -32,6 +32,10 @@ export class TMinusTimer{
         this.reset();
     }
     #tick() {
+        if (this.leftSeconds <= 0) {
+            this.#afterFinish();
+            return;
+        }
         this.leftSeconds--;
         if(this.updateCallback) this.updateCallback(this.leftSeconds);
         this.lastIntegerPerformanceTime = performance.now();
@@ -79,7 +83,7 @@ export class TMinusTimer{
     change(seconds: number) {
         const nextSeconds = this.leftSeconds + seconds;
         if(nextSeconds < 0) {
-            this.duration =- this.leftSeconds;
+            this.duration -= this.leftSeconds;
             this.leftSeconds = 0;
             if(this.updateCallback) this.updateCallback(this.leftSeconds);
             this.#afterFinish();
