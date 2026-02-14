@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { markRaw } from "vue";
-import { buildArcLine, sourceConnectionDef, loadSvg, sourcePointsDef, spinGlobeFunc, sourceTextLabelsDef, layerConnectionDef, layerPointsDef, layerTextLabelsDef, sourcePointsGenerate, sourceTextLabelsGenerate, numberDistanceToString } from "../helpers/map";
+import { buildArcLine, sourceConnectionDef, loadSvg, sourcePointsDef, spinGlobeFunc, sourceTextLabelsDef, layerConnectionDef, layerPointsDef, layerTextLabelsDef, sourcePointsGenerate, numberDistanceToString } from "../helpers/map";
 import pinIcon from '../assets/images/pin.svg';
 import mapboxgl, { Marker } from 'mapbox-gl';
 import type { GeoJSONSource, Map, MapboxOptions, MapMouseEvent } from "mapbox-gl";
@@ -89,6 +89,7 @@ export const useMapStore = defineStore('map', {
                 this.inAnimation = false;
             }
             const flyToPoint = () => {
+                if(!this._map) return;
                 this._map.flyTo({
                     center,
                     zoom,
@@ -172,17 +173,42 @@ export const useMapStore = defineStore('map', {
         },
         showPointsAsMarkerWithText(points: [ [number, number], number, number ][]) {
             checkMap(this._map);
-            points.forEach(([coord]) => {
-                const marker = new mapboxgl.Marker({
-                    color: "#FF428E"
-                }).setLngLat(coord);
+            points.forEach(([coord, distance, point_delta]) => {
+                const pointColor = point_delta > 0 ? '#4CFF6F' : '#FF3A3A';
+                const pointStroke = point_delta > 0 ? '#00A259' : '#BB2727';
+                const pointText = point_delta > 0 ? `+${point_delta}` : `${point_delta}`;
+
+                const el = document.createElement('div');
+                el.className = 'flex flex-col items-center gap-1';
+                el.style.zIndex = '2';
+                el.innerHTML = `
+                    <span
+                        class="text-[26px] font-bold"
+                        style="
+                            color: ${pointColor};
+                            -webkit-text-stroke: 3px ${pointStroke};
+                            paint-order: stroke fill;
+                            text-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+                        "
+                    >${pointText}</span>
+                    <img class="w-10 h-10" src="${pinIcon}" />
+                    <span
+                        class="text-[18px] text-[#FF428E] font-bold"
+                        style="
+                            -webkit-text-stroke: 3px white;
+                            paint-order: stroke fill;
+                        "
+                    >${numberDistanceToString(distance)}</span>
+                `;
+
+                const marker = new mapboxgl.Marker(el).setLngLat(coord);
                 this.displayMarkers.push(marker);
                 marker.addTo(this._map!);
             });
-            (this._map.getSource('text-labels') as GeoJSONSource).setData(sourceTextLabelsGenerate(
-                [...points.map(([coord, distance ]): [[number, number], string, number] => [coord, numberDistanceToString(distance), 0])],
-                'top'
-            ).data);
+            // (this._map.getSource('text-labels') as GeoJSONSource).setData(sourceTextLabelsGenerate(
+            //     [...points.map(([coord, distance ]): [[number, number], string, number] => [coord, numberDistanceToString(distance), 0])],
+            //     'top'
+            // ).data);
             const bound = new mapboxgl.LngLatBounds();
 
             points.forEach(([coord]) => {

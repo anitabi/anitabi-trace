@@ -44,7 +44,7 @@ interface PointExtended extends PointDetail {
 }
 export class Game{
     static readonly GAME_POINT_WAIT_MS = 2000;
-    static readonly GAME_TIME_SECONDS = 15;
+    static readonly GAME_TIME_SECONDS = 5;
     static readonly REWARD_AND_PUNISHMENT: Record<
         'TIME_DEDUCTION' | 'POINT_ADDITION' | 'POINT_ADDITION_TIME_ADDITION' | 'POINT_ADDITION_TIME_ADDITION_PLUS', 
         RewardAndPunishment> = {
@@ -240,6 +240,8 @@ export class GameStateWorking extends GameState{
         this.game.mapStore.clearDraw();
         this.game.mapStore.disableGameInteraction();
         this.game.viewStore.setDeepOverlay(true);
+
+        // this.game.mapStore.showDeepOverlay();
         setTimeout(() => {
             this.game.viewStore.changeView('STATISTICS');
             this.game.mapStore.showPointsAsMarkerWithText(
