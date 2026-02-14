@@ -12,7 +12,7 @@
     </div>
     <div class="absolute top-[34px] right-[34px] flex flex-col items-end">
         <div class="flex flex-row justify-end items-center">
-            <span class="text-[144px] ml-[15px]">{{ Game.GAME_TIME_SECONDS - (gameStore.game.statistics?.leftSeconds || 0) }}</span>
+            <span class="text-[144px] ml-[15px]">{{ gameStore.game.statistics?.duration || 0 }}</span>
         </div>
         <span class="text-[72px] -mt-15">second</span>
         <span class="text-[36px] -mt-2">经过时间</span>

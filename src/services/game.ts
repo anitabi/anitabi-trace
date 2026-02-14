@@ -66,7 +66,7 @@ export class Game{
     state: GameState;
     bangumi: DefaultBangumi | null = null;
     statistics?: {
-        leftSeconds: number;
+        duration: number;
         point: number;
     }
     constructor(viewStore: ViewStore, mapStore: MapStore){
@@ -231,10 +231,10 @@ export class GameStateWorking extends GameState{
         super(game);
         this.game.mapStore.enableGameInteraction();
     }
-    gameOver(leftSeconds: number) {
+    gameOver(duration: number) {
         console.debug('Game over');
         this.game.statistics = {
-            leftSeconds,
+            duration: duration,
             point: this.game.point
         };
         this.game.mapStore.clearDraw();

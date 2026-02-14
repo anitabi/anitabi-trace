@@ -48,7 +48,7 @@ const gameStore = useGameStore();
 const message = ref('');
 const inSelection = ref(true);
 const point = ref(0);
-const leftSeconds = ref(0);
+const leftSeconds = ref(Game.GAME_TIME_SECONDS);
 const pointDelta = ref('');
 const timeDelta = ref('');
 const pointImage = ref({
@@ -60,14 +60,14 @@ const onGameFinish = () => {
     inSelection.value = false;
     showOver.value = true;
     timer.stop();
-    gameStore.game.state.gameOver(timer.leftSeconds);
+    gameStore.game.state.gameOver(timer.duration);
 };
-const timer = new TMinusTimer(Game.GAME_TIME_SECONDS, onGameFinish).setUpdateCallback((seconds) => {
+const timer = new TMinusTimer().setFinishCallback(onGameFinish).setUpdateCallback((seconds) => {
     leftSeconds.value = seconds;
 });
 const mapStore = useMapStore();
 
-timer.start();
+timer.start(Game.GAME_TIME_SECONDS);
 const nextPoint = (next: UpdatePointData | Finished) => {
     switch(next.type) {
         case 'updatePoint':
