@@ -38,7 +38,7 @@
         
 </template>
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { Game } from '../services/game';
 import { useMapStore } from '../stores/map';
 import { TMinusTimer } from '../helpers/timer';
@@ -66,8 +66,6 @@ const timer = new TMinusTimer().setFinishCallback(onGameFinish).setUpdateCallbac
     leftSeconds.value = seconds;
 });
 const mapStore = useMapStore();
-
-timer.start(Game.GAME_TIME_SECONDS);
 const nextPoint = (next: UpdatePointData | Finished) => {
     switch(next.type) {
         case 'updatePoint':
@@ -78,7 +76,10 @@ const nextPoint = (next: UpdatePointData | Finished) => {
             break;
     }
 };
-nextPoint(gameStore.game.nextPoint());
+onMounted(() => {
+    timer.start(Game.GAME_TIME_SECONDS);
+    nextPoint(gameStore.game.nextPoint());
+});
 const handleConfirmPoint = async () => {
     inSelection.value = false;
     timer.pause();

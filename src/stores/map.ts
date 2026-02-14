@@ -23,6 +23,7 @@ export interface MapStore {
     disableGameInteraction(): void;
     addPoints(points: [ [number, number], string ][]): void;
     showPointsAsMarkerWithText(points: [ [number, number], number, number ][]): void;
+    clearMarkers(): void;
 }
 interface MapWindow extends Window {
     map?: Map;
@@ -93,6 +94,7 @@ export const useMapStore = defineStore('map', {
                 this._map.flyTo({
                     center,
                     zoom,
+                    duration: 2500,
                     padding: { top: 0, left: 0, bottom: 0, right: 0 },
                     essential: true
                 });
@@ -205,18 +207,20 @@ export const useMapStore = defineStore('map', {
                 this.displayMarkers.push(marker);
                 marker.addTo(this._map!);
             });
-            // (this._map.getSource('text-labels') as GeoJSONSource).setData(sourceTextLabelsGenerate(
-            //     [...points.map(([coord, distance ]): [[number, number], string, number] => [coord, numberDistanceToString(distance), 0])],
-            //     'top'
-            // ).data);
             const bound = new mapboxgl.LngLatBounds();
 
             points.forEach(([coord]) => {
                 bound.extend(coord);
             });
-            this._map.fitBounds(bound, {
-                padding: Math.min(window.innerHeight, window.innerWidth) * 0.1,
-            });
+            if (points.length > 0) {
+                this._map.fitBounds(bound, {
+                    padding: Math.min(window.innerHeight, window.innerWidth) * 0.1,
+                });
+            }
+        },
+        clearMarkers() {
+            this.displayMarkers.forEach(marker => marker.remove());
+            this.displayMarkers = [];
         }
     }
 });

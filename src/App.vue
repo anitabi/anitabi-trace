@@ -23,15 +23,15 @@
 <script setup lang="ts">
 import { css as fontCss } from './assets/fonts/SmileySans-Oblique-2.ttf?subsets'
 import { useViewStore, type ViewStatus } from './stores/view.ts'
-
+import { useGameStore } from './stores/game.ts'
 import Welcome from './views/Welcome.vue'
 import Counter from './views/Counter.vue'
 import Map from './views/Map.vue'
 import Game from './views/Game.vue'
 import BangumiSelection from './views/BangumiSelection.vue'
 import Statistics from './views/Statistics.vue'
-import { computed, type Component } from 'vue'
-
+import { computed, type Component, onUnmounted } from 'vue'
+const gameStore = useGameStore();
 const viewStore = useViewStore();
 
 const views: Record<ViewStatus, Component> = {
@@ -42,6 +42,9 @@ const views: Record<ViewStatus, Component> = {
   STATISTICS: Statistics
 };
 
+onUnmounted(() => {
+  gameStore.game.reset();
+});
 const isDeepOverlay = computed(() => viewStore.deepOverlay);
 </script>
 <style scoped>

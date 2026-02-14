@@ -74,6 +74,19 @@ export class Game{
         this.mapStore = mapStore;
         this.state = new GameStateIdle(this);
     }
+    reset() {
+        this.bangumiId = null;
+        this.points = [];
+        this.currentIndex = 0;
+        this.point = 0;
+        this.bangumi = null;
+        this.statistics = undefined;
+    }
+    resetResult() {
+        this.point = 0;
+        this.currentIndex = 0;
+        this.statistics = undefined;
+    }
     setState(newState: GameState) {
         this.state = newState;
     }
@@ -164,19 +177,22 @@ class GameState{
         this.game = game;
     }
     init(_mode: GameMode) {
-        throw new Error('Method "start" must be implemented in derived class');
+        throw new Error('Method "init" must be implemented in derived class');
     }
     select(_bangumiId: string) {
         throw new Error('Method "select" must be implemented in derived class');
     }
     back() {
-        throw new Error('Method "start" must be implemented in derived class');
+        throw new Error('Method "back" must be implemented in derived class');
     }
     start() {
-        throw new Error('Method "showGame" must be implemented in derived class');
+        throw new Error('Method "start" must be implemented in derived class');
     }
     gameOver(_leftSeconds: number) {
         throw new Error('Method "gameOver" must be implemented in derived class');
+    }
+    retry() {
+        throw new Error('Method "retry" must be implemented in derived class');
     }
 }
 export class GameStateIdle extends GameState{
@@ -189,6 +205,19 @@ export class GameStateIdle extends GameState{
         this.game.mode = mode;
         this.game.viewStore.changeView('BANGUMI_SELECTION');
         this.game.setState(new GameStateSelectBangumi(this.game));
+    }
+}
+export class GameStateFinish extends GameState{
+    constructor(game: Game){
+        super(game);
+    }
+    retry() {
+        this.game.viewStore.setDeepOverlay(false);
+        this.game.mapStore.clearMarkers();
+        this.game.viewStore.changeView('COUNTER');
+        this.game.resetResult();
+        this.game.mapStore.stopAnimationAndJump(reverseCoordinate(this.game.bangumi!.geo), this.game.bangumi!.zoom);
+        this.game.setState(new GameStateTMinus(this.game));
     }
 }
 export class GameStateSelectBangumi extends GameState{
@@ -241,13 +270,14 @@ export class GameStateWorking extends GameState{
         this.game.mapStore.disableGameInteraction();
         this.game.viewStore.setDeepOverlay(true);
 
-        // this.game.mapStore.showDeepOverlay();
         setTimeout(() => {
             this.game.viewStore.changeView('STATISTICS');
+            this.game.setState(new GameStateFinish(this.game));
             this.game.mapStore.showPointsAsMarkerWithText(
                 this.game.points
                     .filter((p): p is Omit<PointExtended, 'extend'> & { extend: { distance: number, point_delta: number } } => !!p.extend)
                     .map(p => [reverseCoordinate(p.geo), p.extend.distance, p.extend.point_delta]));
+            
         }, 1000);
     }
 }

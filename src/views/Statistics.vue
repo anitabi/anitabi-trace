@@ -18,16 +18,18 @@
         <span class="text-[36px] -mt-2">经过时间</span>
     </div>
     <div class="absolute w-screen bottom-[10vh] right-[20px] h-auto text-center">
-        <button class="again-button pointer-events-auto mr-5">再来一局</button>
+        <button class="again-button pointer-events-auto mr-5" @click="handleRetry">再来一局</button>
         <button class="share-button pointer-events-auto">分享战绩</button>
     </div>
         
 </template>
 <script setup lang="ts">
 import { useGameStore } from '../stores/game';
-import { Game } from '../services/game';
 const gameStore = useGameStore();
 
+const handleRetry = () => {
+    gameStore.game.state.retry();
+};
 </script>
 <style scoped>
 .again-button{
