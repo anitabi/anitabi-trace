@@ -56,7 +56,9 @@ const pointImage = ref({
     image: ''
 });
 const showOver = ref(false);
+let pointWaitTimeout = null as number | null;
 const onGameFinish = () => {
+    if(pointWaitTimeout) clearTimeout(pointWaitTimeout);
     inSelection.value = false;
     showOver.value = true;
     timer.stop();
@@ -70,6 +72,7 @@ const nextPoint = (next: UpdatePointData | Finished) => {
     switch(next.type) {
         case 'updatePoint':
             pointImage.value = { state: 'full', image: next.image };
+            timer.continue();
             break;
         case 'finished':
             onGameFinish();
@@ -77,7 +80,7 @@ const nextPoint = (next: UpdatePointData | Finished) => {
     }
 };
 onMounted(() => {
-    timer.start(Game.GAME_TIME_SECONDS);
+    timer.setLeft(Game.GAME_TIME_SECONDS);
     nextPoint(gameStore.game.nextPoint());
 });
 const handleConfirmPoint = async () => {
@@ -89,11 +92,10 @@ const handleConfirmPoint = async () => {
     if(result.time_delta) timeDelta.value = result.time_delta > 0 ? `+${result.time_delta}` : `${result.time_delta}`;
     timer.change(result.time_delta || 0);
     if(result.point_delta) point.value += result.point_delta;
-    setTimeout(() => {
+    pointWaitTimeout = setTimeout(() => {
         inSelection.value = true;
         message.value = pointDelta.value = timeDelta.value = '';
         nextPoint(gameStore.game.nextPoint());
-        timer.continue();
     }, Game.GAME_POINT_WAIT_MS);
 };
 const textStyleGenerate = (textColor: string, shadowColor: string) => ({

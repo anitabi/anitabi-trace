@@ -46,12 +46,10 @@ export class TMinusTimer{
             ctx.#tick();
         };
     }
-    start(leftSeconds: number) {
+    setLeft(leftSeconds: number) {
         if (this.timer !== null || this.resumeTimeout !== null) throw new Error('Timer is already running');
         this.leftSeconds = leftSeconds;
         this.duration = leftSeconds;
-        this.lastIntegerPerformanceTime = performance.now();
-        this.timer = setInterval(TMinusTimer.intervalFunc(this), 1000);
     }
     pause() {
         if(this.timer === null) throw new Error('Timer is not running');
@@ -62,14 +60,13 @@ export class TMinusTimer{
         this.#clearTimer();
     }
     stop() {
-        if(this.timer === null && this.resumeTimeout === null) return;
         this.#clearTimer();
         this.#clearResumeTimeout();
         this.pauseTimeToRound = null;
     }
     continue() {
-        if(this.timer !== null || this.resumeTimeout !== null || this.pauseTimeToRound === null) throw new Error('Timer is not paused');
-        const delay = this.pauseTimeToRound;
+        if(this.timer !== null || this.resumeTimeout !== null) throw new Error('Timer is not paused');
+        const delay = this.pauseTimeToRound || 0
         this.pauseTimeToRound = null;
         this.resumeTimeout = setTimeout(() => {
             this.resumeTimeout = null;
@@ -81,6 +78,7 @@ export class TMinusTimer{
         }, delay);
     }
     change(seconds: number) {
+        if (this.timer === null) return;
         const nextSeconds = this.leftSeconds + seconds;
         if(nextSeconds < 0) {
             this.duration -= this.leftSeconds;

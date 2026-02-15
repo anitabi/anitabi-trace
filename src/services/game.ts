@@ -198,7 +198,7 @@ class GameState{
     start() {
         throw new Error('Method "start" must be implemented in derived class');
     }
-    gameOver(_leftSeconds: number) {
+    gameOver(_duration: number) {
         throw new Error('Method "gameOver" must be implemented in derived class');
     }
     retry() {
@@ -237,6 +237,13 @@ export class GameStateFinish extends GameState{
         this.game.resetResult();
         this.game.mapStore.stopAnimationAndJump(reverseCoordinate(this.game.bangumi!.geo), this.game.bangumi!.zoom);
         this.game.setState(new GameStateTMinus(this.game));
+    }
+    back() {
+        this.game.viewStore.setDeepOverlay('FULL');
+        this.game.mapStore.clearMarkers();
+        this.game.viewStore.changeView('WELCOME');
+        this.game.reset();
+        this.game.setState(new GameStateIdle(this.game));
     }
 }
 export class GameStateSelectBangumi extends GameState{
@@ -299,12 +306,16 @@ export class GameStateAuth extends GameState{
     }
 }
 export class GameStateWorking extends GameState{
+    ended: boolean = false;
     constructor(game: Game){
         super(game);
         this.game.mapStore.enableGameInteraction();
     }
     gameOver(duration: number) {
         console.debug('Game over');
+        if (this.ended) throw new Error('Game has already ended');
+        this.ended = true;
+        this.ended = true;
         this.game.statistics = {
             duration: duration,
             point: this.game.point
