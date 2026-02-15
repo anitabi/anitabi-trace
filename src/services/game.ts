@@ -240,9 +240,9 @@ export class GameStateFinish extends GameState{
     }
     back() {
         this.game.viewStore.setDeepOverlay('FULL');
-        this.game.mapStore.clearMarkers();
-        this.game.viewStore.changeView('WELCOME');
+        this.game.mapStore.reset();
         this.game.reset();
+        this.game.viewStore.changeView('WELCOME');
         this.game.setState(new GameStateIdle(this.game));
     }
 }

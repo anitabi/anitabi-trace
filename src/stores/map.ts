@@ -32,6 +32,7 @@ export interface MapStore {
     clearMarkers(): void;
     drawCanvas(): HTMLCanvasElement;
     drawMarkers(canvas: HTMLCanvasElement): Promise<void>;
+    reset(): void;
 }
 interface MapWindow extends Window {
     map?: Map;
@@ -279,7 +280,15 @@ export const useMapStore = defineStore('map', {
                 ctx.fillText(numberDistanceToString(sm.distance), (translatedX + 12) * dpr, (translatedY + 50) * dpr);
             });
             return;
-
+        },
+        reset() {
+            this.clearDraw();
+            this.clearMarkers();
+            this._map?.jumpTo({
+                center: [0, 0],
+                padding: { top: window.innerHeight, left: 0, bottom: 0, right: 0 },
+                zoom: this.initParameters.zoom,
+            });
         }
     }
 });

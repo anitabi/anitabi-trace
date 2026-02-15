@@ -29,8 +29,13 @@
                 <span class="text-medium mt-1">超越了 75 % 的网友！</span>
             </div>
             <div class="h-auto place-self-end">
-                <button class="again-button pointer-events-auto mr-5" @click="handleRetry">再来一局</button>
-                <button class="share-button pointer-events-auto" @click="handleGenerateImg">分享战绩</button>
+                <div class="flex flex-col items-end gap-4">
+                    <button class="text-medium underline-text relative pointer-events-auto" @click="handleGoHome">回首页</button>
+                    <div>
+                        <button class="again-button pointer-events-auto mr-5" @click="handleRetry">再来一局</button>
+                        <button class="share-button pointer-events-auto" @click="handleGenerateImg">分享战绩</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>    
@@ -46,6 +51,9 @@ const mapStore = useMapStore();
 
 const handleRetry = () => {
     gameStore.game.state.retry();
+};
+const handleGoHome = () => {
+    gameStore.game.state.back();
 };
 const generateDateString = () => {
     const now = new Date();
