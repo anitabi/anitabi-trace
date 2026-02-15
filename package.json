@@ -28,5 +28,6 @@
     "vite-plugin-font": "^5.1.2",
     "vite-plugin-mock-dev-server": "^1.8.7",
     "vue-tsc": "^3.0.1"
-  }
+  },
+  "packageManager": "yarn@4.12.0"
 }
