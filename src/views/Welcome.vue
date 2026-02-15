@@ -1,8 +1,9 @@
 <template>
-    <div class="absolute top-10 left-10 text-white flex flex-col">
+    <div class="absolute top-10 left-10 text-white flex flex-col" v-if="userStore.nickname">
         <span class="text-medium">欢迎</span>
-        <span class="text-large">不可溶的碳酸氢盐</span>
+        <span class="text-large normal-font-family">{{ userStore.nickname }}</span>
     </div>
+    <button class="absolute top-10 left-10 underline-text text-medium pointer-events-auto" v-else>登录</button>
     <button class="absolute top-10 right-10 text-white text-medium underline-text pointer-events-auto" @click="handleGoRank">
         排行榜
     </button>
@@ -31,7 +32,9 @@
 import { css as titleFontCss } from '@/assets/fonts/YouSheBiaoTiHei.ttf?subsets'
 const QQ_GROUP_LINK = import.meta.env.VITE_ANITABI_QQ_GROUP_LINK;
 import { useGameStore } from '../stores/game';
+import { useUserStore } from '../stores/user';
 const gameStore = useGameStore();
+const userStore = useUserStore();
 const handleStartSinglePlayerGame = () => {
     gameStore.game.state.init('SINGLE');
 }

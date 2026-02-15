@@ -6,7 +6,8 @@ const VIEW_STATUS = {
      GAME: 'Game',
      BANGUMI_SELECTION: 'BangumiSelection',
      STATISTICS: 'Statistics',
-     RANK: 'Rank'
+     RANK: 'Rank',
+     AUTH: 'Auth'
 }
 export type ViewStatus = keyof typeof VIEW_STATUS;
 export type DeepOverlayStatus = 'FULL' | 'HEAD_ONLY' | 'OREO';

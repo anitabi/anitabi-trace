@@ -34,6 +34,7 @@ import Game from './views/Game.vue'
 import BangumiSelection from './views/BangumiSelection.vue'
 import Statistics from './views/Statistics.vue'
 import Rank from './views/Rank.vue'
+import Auth from './views/Auth.vue';
 import { computed, type Component, onUnmounted } from 'vue'
 const gameStore = useGameStore();
 const viewStore = useViewStore();
@@ -45,6 +46,7 @@ const views: Record<ViewStatus, Component> = {
   BANGUMI_SELECTION: BangumiSelection,
   STATISTICS: Statistics,
   RANK: Rank,
+  AUTH: Auth
 };
 
 onUnmounted(() => {

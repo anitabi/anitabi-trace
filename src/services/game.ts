@@ -6,6 +6,7 @@ import type { MapStore } from '../stores/map';
 import type { ViewStore } from '../stores/view';
 import { numberDistanceToString, reverseCoordinate } from "../helpers/map";
 import { preloadImage } from "../helpers/preload";
+import type { UserStore } from '../stores/user';
 interface GameWindow extends Window {
     cheating?: boolean;
 }
@@ -60,6 +61,7 @@ export class Game{
     points: PointExtended[] = [];
     viewStore: ViewStore;
     mapStore: MapStore;
+    userStore: UserStore;
     currentIndex: number = 0;
     mode: GameMode = "SINGLE";
     point: number = 0;
@@ -69,9 +71,10 @@ export class Game{
         duration: number;
         point: number;
     }
-    constructor(viewStore: ViewStore, mapStore: MapStore){
+    constructor(viewStore: ViewStore, mapStore: MapStore, userStore: UserStore){
         this.viewStore = viewStore
         this.mapStore = mapStore;
+        this.userStore = userStore;
         this.state = new GameStateIdle(this);
         this.viewStore.setDeepOverlay('FULL');
     }
@@ -180,6 +183,9 @@ class GameState{
     init(_mode: GameMode) {
         throw new Error('Method "init" must be implemented in derived class');
     }
+    next() {
+        throw new Error('Method "next" must be implemented in derived class');
+    }
     goRank() {
         throw new Error('Method "goRank" must be implemented in derived class');
     }
@@ -207,8 +213,13 @@ export class GameStateIdle extends GameState{
     }
     init(mode: GameMode) {
         this.game.mode = mode;
-        this.game.viewStore.changeView('BANGUMI_SELECTION');
-        this.game.setState(new GameStateSelectBangumi(this.game));
+        if (!this.game.userStore.nickname) {
+            this.game.viewStore.changeView('AUTH');
+            this.game.setState(new GameStateAuth(this.game));
+        } else {
+            this.game.viewStore.changeView('BANGUMI_SELECTION');
+            this.game.setState(new GameStateSelectBangumi(this.game));
+        }
     }
     goRank() {
         this.game.viewStore.changeView('RANK');
@@ -267,6 +278,20 @@ export class GameStateTMinus extends GameState{
 export class GameStateRank extends GameState{
     constructor(game: Game){
         super(game);
+    }
+    back() {
+        this.game.viewStore.changeView('WELCOME');
+        this.game.setState(new GameStateIdle(this.game));
+    }
+}
+export class GameStateAuth extends GameState{
+    constructor(game: Game){
+        super(game);
+    }
+    next() {
+        if (!this.game.userStore.nickname) return;
+        this.game.viewStore.changeView('BANGUMI_SELECTION');
+        this.game.setState(new GameStateSelectBangumi(this.game));
     }
     back() {
         this.game.viewStore.changeView('WELCOME');
