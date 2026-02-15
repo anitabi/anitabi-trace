@@ -1,8 +1,8 @@
 
 <template>
-    <div class="absolute top-10 left-10 text-white flex flex-col underline-text pointer-events-auto">
-        <span class="text-medium" @click="handleBack">返回</span>
-    </div>
+    <button class="absolute top-10 left-10 text-white flex flex-col underline-text pointer-events-auto" @click="handleBack">
+        <span class="text-medium">返回</span>
+    </button>
     <div class="absolute top-[72px] flex flex-col w-full">
         <div class="w-full text-center text-white">
             <h1 class="text-huge">单人计时</h1>
@@ -13,11 +13,13 @@
                 
                 <div v-if="data" v-for="item in data" :key="item.id" class="text-center pointer-events-auto">
                     <img :src="item.cover" 
-                        :class="'w-[180px] h-[225px] m-4 rounded-lg shadow-lg border-[4px] hover:scale-110 ' 
-                            + (bangumiId === item.id ? 'scale-110' : '')" :style="{ borderColor: item.color }" 
+                        class="w-[180px] h-[225px] m-4 rounded-lg shadow-lg border-[4px] hover:scale-110 hover:opacity-100" 
+                            :class="{ 'scale-110': bangumiId === item.id, 'opacity-40': bangumiId !== null && bangumiId !== item.id }"
+                            :style="{ borderColor: item.color }" 
                         @click="bangumiId = item.id"
                         />
-                    <span class="normal-font-family text-normal">{{ item.name }}</span>
+                    <span class="normal-font-family text-normal"
+                        :class="{ 'opacity-40': bangumiId !== null && bangumiId !== item.id }">{{ item.name }}</span>
                 </div>
             </div>
             <div v-if="loading" class="m-auto text-2xl">加载中...</div>
