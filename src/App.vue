@@ -33,6 +33,7 @@ import Map from './views/Map.vue'
 import Game from './views/Game.vue'
 import BangumiSelection from './views/BangumiSelection.vue'
 import Statistics from './views/Statistics.vue'
+import Rank from './views/Rank.vue'
 import { computed, type Component, onUnmounted } from 'vue'
 const gameStore = useGameStore();
 const viewStore = useViewStore();
@@ -42,7 +43,8 @@ const views: Record<ViewStatus, Component> = {
   COUNTER: Counter,
   GAME: Game,
   BANGUMI_SELECTION: BangumiSelection,
-  STATISTICS: Statistics
+  STATISTICS: Statistics,
+  RANK: Rank,
 };
 
 onUnmounted(() => {

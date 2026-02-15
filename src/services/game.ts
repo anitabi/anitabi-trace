@@ -180,6 +180,9 @@ class GameState{
     init(_mode: GameMode) {
         throw new Error('Method "init" must be implemented in derived class');
     }
+    goRank() {
+        throw new Error('Method "goRank" must be implemented in derived class');
+    }
     select(_bangumiId: string) {
         throw new Error('Method "select" must be implemented in derived class');
     }
@@ -206,6 +209,10 @@ export class GameStateIdle extends GameState{
         this.game.mode = mode;
         this.game.viewStore.changeView('BANGUMI_SELECTION');
         this.game.setState(new GameStateSelectBangumi(this.game));
+    }
+    goRank() {
+        this.game.viewStore.changeView('RANK');
+        this.game.setState(new GameStateRank(this.game));
     }
 }
 export class GameStateFinish extends GameState{
@@ -255,6 +262,15 @@ export class GameStateTMinus extends GameState{
         this.game.viewStore.setDeepOverlay('HEAD_ONLY');
         this.game.viewStore.changeView('GAME');
         this.game.setState(new GameStateWorking(this.game));
+    }
+}
+export class GameStateRank extends GameState{
+    constructor(game: Game){
+        super(game);
+    }
+    back() {
+        this.game.viewStore.changeView('WELCOME');
+        this.game.setState(new GameStateIdle(this.game));
     }
 }
 export class GameStateWorking extends GameState{

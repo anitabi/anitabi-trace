@@ -3,9 +3,9 @@
         <span class="text-medium">欢迎</span>
         <span class="text-large">不可溶的碳酸氢盐</span>
     </div>
-    <div class="absolute top-10 right-10 text-white text-medium underline-text pointer-events-auto">
+    <button class="absolute top-10 right-10 text-white text-medium underline-text pointer-events-auto" @click="handleGoRank">
         排行榜
-    </div>
+    </button>
     <div class="flex flex-col text-center">
         <div class="mt-[30vh] text-white">
             <h2 class="text-large">anitabi</h2>
@@ -34,6 +34,9 @@ import { useGameStore } from '../stores/game';
 const gameStore = useGameStore();
 const handleStartSinglePlayerGame = () => {
     gameStore.game.state.init('SINGLE');
+}
+const handleGoRank = () => {
+    gameStore.game.state.goRank();
 }
 </script>
 <style scoped>
