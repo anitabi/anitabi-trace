@@ -5,28 +5,28 @@
 
             <div class="flex flex-col items-start">
                 <div class="flex flex-row justify-start items-center">
-                    <span class="text-[144px] mr-[15px]">{{ gameStore.game.statistics?.point || 0 }}</span>
+                    <span class="text-enormous mr-[15px]">{{ gameStore.game.statistics?.point || 0 }}</span>
                 </div>
-                <span class="text-[72px] -mt-15">score</span>
-                <span class="text-[36px] -mt-2">获得分数</span>
+                <span class="text-huge -mt-15">score</span>
+                <span class="text-medium -mt-2">获得分数</span>
             </div>
             <div>
-                <h1 class="text-[48px] mt-[48px] text-center">单人计时</h1>
-                <h1 class="text-[36px] mt-[5px] text-center">{{ gameStore.game.bangumi?.name || '' }}</h1>
+                <h1 class="text-large mt-[48px] text-center">单人计时</h1>
+                <h1 class="text-medium mt-[5px] text-center">{{ gameStore.game.bangumi?.name || '' }}</h1>
             </div>
             <div class="flex flex-col items-end">
                 <div class="flex flex-row justify-end items-center">
-                    <span class="text-[144px] ml-[15px]">{{ gameStore.game.statistics?.duration || 0 }}</span>
+                    <span class="text-enormous ml-[15px]">{{ gameStore.game.statistics?.duration || 0 }}</span>
                 </div>
-                <span class="text-[72px] -mt-15">second</span>
-                <span class="text-[36px] -mt-2">经过时间</span>
+                <span class="text-huge -mt-15">second</span>
+                <span class="text-medium -mt-2">经过时间</span>
             </div>
         </div>
         <div class="grid grid-cols-2 items-end">
             <div class="flex flex-col">
-                <span class="text-[36px]">700+</span>
-                <span class="text-[24px] -mt-1">单人计时模式排名</span>
-                <span class="text-[36px] mt-1">超越了 75 % 的网友！</span>
+                <span class="text-medium">700+</span>
+                <span class="text-normal -mt-1">单人计时模式排名</span>
+                <span class="text-medium mt-1">超越了 75 % 的网友！</span>
             </div>
             <div class="h-auto place-self-end">
                 <button class="again-button pointer-events-auto mr-5" @click="handleRetry">再来一局</button>

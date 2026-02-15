@@ -197,7 +197,7 @@ export const useMapStore = defineStore('map', {
                 el.style.zIndex = '2';
                 el.innerHTML = `
                     <span
-                        class="text-[26px] font-bold"
+                        class="text-normal font-bold"
                         style="
                             color: ${pointColor};
                             -webkit-text-stroke: 3px ${pointStroke};
@@ -207,7 +207,7 @@ export const useMapStore = defineStore('map', {
                     >${pointText}</span>
                     <img width="24" height="34" src="${pinIcon}" />
                     <span
-                        class="text-[18px] text-[#FF428E] font-bold"
+                        class="text-tiny text-[#FF428E] font-bold"
                         style="
                             -webkit-text-stroke: 3px white;
                             paint-order: stroke fill;

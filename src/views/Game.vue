@@ -2,25 +2,25 @@
     <img v-if="inSelection && pointImage.image" :src="pointImage.image" :class="`pointer-events-auto cursor-pointer fixed border-[4px] border-white rounded-lg shadow-md left-1/2 -translate-x-1/2
         ${pointImage.state === 'full' ? 'w-[432px] top-[179px]' : 'w-[184px] top-[43px]'}`"
         @click="pointImage.state = pointImage.state === 'full' ? 'minimal' : 'full'" />
-    <h1 class="text-[24px] mt-[48px] text-center">{{ gameStore.game.mode === 'SINGLE' ? '单人模式' : '线上对战' }}</h1>
-    <h1 class="text-[18px] mt-[5px] text-center">{{ gameStore.game.bangumi?.name }}</h1>
+    <h1 class="text-normal mt-[48px] text-center">{{ gameStore.game.mode === 'SINGLE' ? '单人模式' : '线上对战' }}</h1>
+    <h1 class="text-tiny mt-[5px] text-center">{{ gameStore.game.bangumi?.name }}</h1>
     <div class="absolute top-[34px] left-[34px] flex flex-col items-start">
         <div class="flex flex-row justify-start items-center">
-            <span class="text-[72px] mr-[15px]">{{ point }}</span>
+            <span class="text-huge mr-[15px]">{{ point }}</span>
             <transition name="number-delta">
-                <span class="text-[48px]" :style="{ color: pointDeltaStyle.text, textShadow: pointDeltaStyle.textShadow }" v-if="pointDelta">{{ pointDelta }}</span>
+                <span class="text-large" :style="{ color: pointDeltaStyle.text, textShadow: pointDeltaStyle.textShadow }" v-if="pointDelta">{{ pointDelta }}</span>
             </transition>
         </div>
-        <span class="text-[36px] -mt-5">Score</span>
+        <span class="text-medium -mt-5">Score</span>
     </div>
     <div class="absolute top-[34px] right-[34px] flex flex-col items-end">
         <div class="flex flex-row justify-end items-center">
             <transition name="number-delta">
-                <span class="text-[48px]" :style="{ color: timeDeltaStyle.text, textShadow: timeDeltaStyle.textShadow }" v-if="timeDelta">{{ timeDelta }}</span>
+                <span class="text-large" :style="{ color: timeDeltaStyle.text, textShadow: timeDeltaStyle.textShadow }" v-if="timeDelta">{{ timeDelta }}</span>
             </transition>
-            <span class="text-[72px] ml-[15px]">{{ leftSeconds }}</span>
+            <span class="text-huge ml-[15px]">{{ leftSeconds }}</span>
         </div>
-        <span class="text-[36px] -mt-5">Second</span>
+        <span class="text-medium -mt-5">Second</span>
     </div>
     <div class="absolute w-screen bottom-[10vh] h-auto text-center">
         <button class="confirm-point-button pointer-events-auto" @click="handleConfirmPoint" v-if="inSelection && mapStore.hasMarker">确认标点</button>
@@ -28,12 +28,12 @@
     <div class="absolute bottom-[10vh] w-full flex justify-center">
         <div class="relative before:bg-black/50 before:w-full before:h-full before:absolute before:inset-0
         px-[29px] py-[18px] rounded-[10px] before:blur-[12px] max-w-[336px]" v-if="message !== ''">
-            <span class="text-[24px] z-[calc(var(--index)+1)] relative">{{ message }}</span>
+            <span class="text-normal z-[calc(var(--index)+1)] relative">{{ message }}</span>
         </div>
     </div>
     <div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
         v-if="showOver">
-        <p class="text-[210px]">Over.</p>
+        <p class="text-giant">Over.</p>
     </div>
         
 </template>

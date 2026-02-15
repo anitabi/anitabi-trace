@@ -7,3 +7,14 @@
 body{
     overflow-y: hidden;
 }
+
+@theme {
+    --text-tiny: 1.125rem;
+    --text-normal: 1.25rem;
+    --text-medium: 2.25rem;
+    --text-large: 3rem;
+    --text-huge: 4.5rem;
+    --text-hugeplus: 5.375rem;
+    --text-enormous: 9rem;
+    --text-giant: 13.125rem;
+}

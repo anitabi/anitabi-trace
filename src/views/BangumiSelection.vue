@@ -1,12 +1,12 @@
 
 <template>
     <div class="absolute top-10 left-10 text-white flex flex-col underline-text pointer-events-auto">
-        <span class="text-[36px]" @click="handleBack">返回</span>
+        <span class="text-medium" @click="handleBack">返回</span>
     </div>
     <div class="absolute top-[72px] flex flex-col w-full">
         <div class="w-full text-center text-white">
-            <h1 class="text-[72px]">单人计时</h1>
-            <h2 class="text-[24px] mt-[22px]">选择进行游戏的作品</h2>
+            <h1 class="text-huge">单人计时</h1>
+            <h2 class="text-normal mt-[22px]">选择进行游戏的作品</h2>
         </div>
         <div class="mt-[10vh] w-full flex flex-col">
             <div class="flex flex-row justify-center">
@@ -17,13 +17,13 @@
                             + (bangumiId === item.id ? 'scale-110' : '')" :style="{ borderColor: item.color }" 
                         @click="bangumiId = item.id"
                         />
-                    <span class="normal-font-family text-[24px]">{{ item.name }}</span>
+                    <span class="normal-font-family text-normal">{{ item.name }}</span>
                 </div>
             </div>
             <div v-if="loading" class="m-auto text-2xl">加载中...</div>
             <div v-if="error" class="m-auto text-2xl">出错了 qaq</div>
             <div class="flex flex-row mt-20 m-auto">
-                <button :class="'w-[180px] h-[76px] text-white rounded-lg shadow-xl text-[36px] pointer-events-auto '  +
+                <button :class="'w-[180px] h-[76px] text-white rounded-lg shadow-xl text-medium pointer-events-auto '  +
                 (!buttonDisabled ? 'bg-gradient-to-r from-[#0073DE] to-[#00A5F1] hover:translate-y-1' : 'bg-slate-500') " @click="handleStart" :disabled="buttonDisabled">立即开始</button>
             </div>
         </div>
