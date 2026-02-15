@@ -1,14 +1,20 @@
-import { defineStore } from "pinia";
-import { markRaw } from "vue";
-import { buildArcLine, sourceConnectionDef, loadSvg, sourcePointsDef, spinGlobeFunc, sourceTextLabelsDef, layerConnectionDef, layerPointsDef, layerTextLabelsDef, sourcePointsGenerate, numberDistanceToString } from "../helpers/map";
+import { defineStore } from 'pinia';
+import { markRaw } from 'vue';
+import { buildArcLine, sourceConnectionDef, sourcePointsDef, spinGlobeFunc, sourceTextLabelsDef, layerConnectionDef, layerPointsDef, layerTextLabelsDef, sourcePointsGenerate, numberDistanceToString } from '../helpers/map';
+import { loadSvg } from '../helpers/svg';
 import pinIcon from '../assets/images/pin.svg';
 import mapboxgl, { Marker } from 'mapbox-gl';
-import type { GeoJSONSource, Map, MapboxOptions, MapMouseEvent } from "mapbox-gl";
+import type { GeoJSONSource, Map, MapboxOptions, MapMouseEvent } from 'mapbox-gl';
 
 const checkMap: (map: Map | null) => asserts map is Map = (map) => {
     if (map === null) {
         throw new Error('Map is not initialized. Call setupMap() first.');
     }
+};
+type StatMarker = {
+    marker: Marker;
+    distance: number;
+    pointDelta: number;
 };
 export interface MapStore {
     hasMarker: boolean;
@@ -24,6 +30,8 @@ export interface MapStore {
     addPoints(points: [ [number, number], string ][]): void;
     showPointsAsMarkerWithText(points: [ [number, number], number, number ][]): void;
     clearMarkers(): void;
+    drawCanvas(): HTMLCanvasElement;
+    drawMarkers(canvas: HTMLCanvasElement): Promise<void>;
 }
 interface MapWindow extends Window {
     map?: Map;
@@ -32,7 +40,7 @@ export const useMapStore = defineStore('map', {
     state: () => ({
         _map: null as Map | null,
         marker: null as Marker | null,
-        displayMarkers: [] as Marker[],
+        displayMarkers: [] as StatMarker[],
         spinGlobeFunc: null as (() => void) | null,
         clickEvent: null as ((e: MapMouseEvent) => void) | null,
         inAnimation: true,
@@ -40,7 +48,8 @@ export const useMapStore = defineStore('map', {
             style: 'mapbox://styles/mapbox/streets-v9',
             projection: 'globe',
             zoom: 2.5,
-            center: [0, 0]
+            center: [0, 0],
+            preserveDrawingBuffer: true
         } as MapboxOptions
     }),
     getters: {
@@ -64,7 +73,10 @@ export const useMapStore = defineStore('map', {
                 }); // set atmosphere
             });
             this.adjustPadding(windowHeight);
-            loadSvg(this._map, 'pin', pinIcon, 48);
+            loadSvg(pinIcon, 24, 34).then(img => {
+                if(!this._map) return;
+                this._map.addImage('pin', img);
+            });
             this._map.on('load', () => {
                 spinGlobeFunc(this._map!)();
             });
@@ -175,10 +187,10 @@ export const useMapStore = defineStore('map', {
         },
         showPointsAsMarkerWithText(points: [ [number, number], number, number ][]) {
             checkMap(this._map);
-            points.forEach(([coord, distance, point_delta]) => {
-                const pointColor = point_delta > 0 ? '#4CFF6F' : '#FF3A3A';
-                const pointStroke = point_delta > 0 ? '#00A259' : '#BB2727';
-                const pointText = point_delta > 0 ? `+${point_delta}` : `${point_delta}`;
+            points.forEach(([coord, distance, pointDelta]) => {
+                const pointColor = pointDelta > 0 ? '#4CFF6F' : '#FF3A3A';
+                const pointStroke = pointDelta > 0 ? '#00A259' : '#BB2727';
+                const pointText = pointDelta > 0 ? `+${pointDelta}` : `${pointDelta}`;
 
                 const el = document.createElement('div');
                 el.className = 'flex flex-col items-center gap-1';
@@ -193,7 +205,7 @@ export const useMapStore = defineStore('map', {
                             text-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
                         "
                     >${pointText}</span>
-                    <img class="w-10 h-10" src="${pinIcon}" />
+                    <img width="24" height="34" src="${pinIcon}" />
                     <span
                         class="text-[18px] text-[#FF428E] font-bold"
                         style="
@@ -204,7 +216,11 @@ export const useMapStore = defineStore('map', {
                 `;
 
                 const marker = new mapboxgl.Marker(el).setLngLat(coord);
-                this.displayMarkers.push(marker);
+                this.displayMarkers.push({
+                    marker,
+                    distance,
+                    pointDelta
+                });
                 marker.addTo(this._map!);
             });
             const bound = new mapboxgl.LngLatBounds();
@@ -219,8 +235,51 @@ export const useMapStore = defineStore('map', {
             }
         },
         clearMarkers() {
-            this.displayMarkers.forEach(marker => marker.remove());
+            this.displayMarkers.forEach(sm => sm.marker.remove());
             this.displayMarkers = [];
+        },
+        drawCanvas(): HTMLCanvasElement {
+            const canvas = document.createElement('canvas');
+            if (!this._map) return canvas;
+            const mapCanvas = this._map.getCanvas();
+            canvas.width = mapCanvas.width;
+            canvas.height = mapCanvas.height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return canvas;
+            ctx.drawImage(mapCanvas, 0, 0);
+            return canvas;
+        },
+        async drawMarkers(canvas: HTMLCanvasElement): Promise<void> {
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+            const pinImg = await loadSvg(pinIcon, 24, 34); 
+            const dpr = window.devicePixelRatio || 1;
+            this.displayMarkers.forEach(sm => {
+                const markerElement = sm.marker.getElement();
+                const transformMatrix = new DOMMatrix(window.getComputedStyle(markerElement).transform);
+                const translatedX = transformMatrix.m41;
+                const translatedY = transformMatrix.m42;
+                ctx.drawImage(pinImg, translatedX * dpr, translatedY * dpr, 24 * dpr, 34 * dpr);
+                const pointColor = sm.pointDelta > 0 ? '#4CFF6F' : '#FF3A3A';
+                const pointStroke = sm.pointDelta > 0 ? '#00A259' : '#BB2727';
+                const pointText = sm.pointDelta > 0 ? `+${sm.pointDelta}` : `${sm.pointDelta}`;
+                ctx.font = `${26 * dpr}px Arial`;
+                ctx.fillStyle = pointColor;
+                ctx.strokeStyle = pointStroke;
+                ctx.lineWidth = 3;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.strokeText(pointText, (translatedX + 12) * dpr, (translatedY - 20) * dpr);
+                ctx.fillText(pointText, (translatedX + 12) * dpr, (translatedY - 20) * dpr);
+                ctx.font = `${18 * dpr}px Arial`;
+                ctx.fillStyle = '#FF428E';
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 3;
+                ctx.strokeText(numberDistanceToString(sm.distance), (translatedX + 12) * dpr, (translatedY + 50) * dpr);
+                ctx.fillText(numberDistanceToString(sm.distance), (translatedX + 12) * dpr, (translatedY + 50) * dpr);
+            });
+            return;
+
         }
     }
 });

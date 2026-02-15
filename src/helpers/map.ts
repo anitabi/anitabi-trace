@@ -22,19 +22,6 @@ export const spinGlobeFunc = (map: Map, secondsPerRevolution = 240, maxSpinZoom 
         }
     }
 };
-export const loadSvg = (map: Map, name: string, src: string, size: number): Promise<void> => {
-    return new Promise((resolve, reject) => {
-        const img = new Image(size, size);
-        img.onload = () => {
-            map.addImage(name, img);
-            resolve();
-        };
-        img.onerror = (err) => {
-            reject(err);
-        };
-        img.src = src;
-    });
-};
 export const buildArcLine = (
   [startLng, startLat]: [number, number],
   [endLng, endLat]: [number, number]
