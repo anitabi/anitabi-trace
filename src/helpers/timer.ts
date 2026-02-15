@@ -1,103 +1,120 @@
 export class TMinusTimer{
-    leftSeconds = 0;
-    duration = 0;
-    timer: number | null = null;
-    resumeTimeout: number | null = null;
-    finishCallback?: (() => unknown);
+    state: { type: 'IDLE' } | 
+        { type: 'RUNNING', secondTimer: number, lastPerformanceTime: number } | 
+        { type: 'RUNNING_MILLIS', millisecondTimer: number, lastPerformanceTime: number, millisecondsLeft: number } | 
+        { type: 'PAUSED', millisecondsLeftAtPause: number } | 
+        { type: 'FINISHED' } = { type: 'IDLE' };
+    left: number = 0;
+    duration: number = 0;
+    finishCallback?: () => unknown;
     updateCallback?: (seconds: number) => unknown;
-    pauseTimeToRound: number | null = null;
-    lastIntegerPerformanceTime: number | null = null;
     setFinishCallback(callback: () => unknown): TMinusTimer {
         this.finishCallback = callback;
         return this;
     }
+
     setUpdateCallback(callback: (seconds: number) => unknown): TMinusTimer {
         this.updateCallback = callback;
         return this;
     }
-    #clearTimer() {
-        if (this.timer === null) return;
-        clearInterval(this.timer)
-        this.timer = null;
-    }
-    #clearResumeTimeout() {
-        if (this.resumeTimeout === null) return;
-        clearTimeout(this.resumeTimeout);
-        this.resumeTimeout = null;
-    }
-    #afterFinish() {
-        this.#clearTimer();
-        this.#clearResumeTimeout();
-        if (this.finishCallback) this.finishCallback();
-        this.reset();
-    }
-    #tick() {
-        if (this.leftSeconds <= 0) {
-            this.#afterFinish();
-            return;
-        }
-        this.leftSeconds--;
-        if(this.updateCallback) this.updateCallback(this.leftSeconds);
-        this.lastIntegerPerformanceTime = performance.now();
-        if(this.leftSeconds <= 0) this.#afterFinish();
-    }
-    static intervalFunc(ctx: TMinusTimer) {
-        return () => {
-            ctx.#tick();
-        };
-    }
     setLeft(leftSeconds: number) {
-        if (this.timer !== null || this.resumeTimeout !== null) throw new Error('Timer is already running');
-        this.leftSeconds = leftSeconds;
+        if (this.state.type === 'RUNNING' 
+            || this.state.type === 'RUNNING_MILLIS' || this.state.type === 'PAUSED') throw new Error('Timer is already running');
+        if (this.state.type === 'FINISHED') this.state = { type: 'IDLE' };
+        this.left = leftSeconds;
         this.duration = leftSeconds;
     }
-    pause() {
-        if(this.timer === null) throw new Error('Timer is not running');
-        const now = performance.now();
-        const elapsedSinceLastTick = this.lastIntegerPerformanceTime === null ? 0 : now - this.lastIntegerPerformanceTime;
-        const clampedElapsed = Math.max(0, Math.min(1000, elapsedSinceLastTick));
-        this.pauseTimeToRound = 1000 - clampedElapsed;
-        this.#clearTimer();
-    }
-    stop() {
-        this.#clearTimer();
-        this.#clearResumeTimeout();
-        this.pauseTimeToRound = null;
-    }
     continue() {
-        if(this.timer !== null || this.resumeTimeout !== null) throw new Error('Timer is not paused');
-        const delay = this.pauseTimeToRound || 0
-        this.pauseTimeToRound = null;
-        this.resumeTimeout = setTimeout(() => {
-            this.resumeTimeout = null;
-            this.#tick();
-            if(this.leftSeconds > 0) {
-                this.lastIntegerPerformanceTime = performance.now();
-                this.timer = setInterval(TMinusTimer.intervalFunc(this), 1000);
+        if (this.state.type === 'RUNNING' || this.state.type === 'RUNNING_MILLIS') throw new Error('Timer is already running');
+        if (this.state.type === 'FINISHED') throw new Error('Timer is already finished');
+        if (this.state.type === 'PAUSED') {
+            if (this.state.millisecondsLeftAtPause > 0) {
+                this.state = {
+                    type: 'RUNNING_MILLIS',
+                    millisecondTimer: setTimeout(this.#tick.bind(this), this.state.millisecondsLeftAtPause),
+                    lastPerformanceTime: performance.now(),
+                    millisecondsLeft: this.state.millisecondsLeftAtPause
+                };
+            } else {
+                this.state = { 
+                    type: 'RUNNING', 
+                    secondTimer: setTimeout(this.#tick.bind(this), 1000),
+                    lastPerformanceTime: performance.now() 
+                };
             }
-        }, delay);
-    }
-    change(seconds: number) {
-        if (this.timer === null) return;
-        const nextSeconds = this.leftSeconds + seconds;
-        if(nextSeconds < 0) {
-            this.duration -= this.leftSeconds;
-            this.leftSeconds = 0;
-            if(this.updateCallback) this.updateCallback(this.leftSeconds);
-            this.#afterFinish();
-        }else{
-            this.duration += seconds;
-            this.leftSeconds = nextSeconds;
-            if(this.updateCallback) this.updateCallback(this.leftSeconds);
+        } else {
+            this.state = {
+                type: 'RUNNING',
+                secondTimer: setTimeout(this.#tick.bind(this), 1000),
+                lastPerformanceTime: performance.now()
+            };
         }
     }
-    reset() {
-        this.timer = null;
-        this.resumeTimeout = null;
-        this.leftSeconds = 0;
-        this.pauseTimeToRound = null;
-        this.lastIntegerPerformanceTime = null;
-        this.finishCallback = undefined;
-        this.updateCallback = undefined;
+    #tick() {
+        if (this.state.type !== 'RUNNING' && this.state.type !== 'RUNNING_MILLIS') throw new Error('Timer is not running');
+        if (this.state.type === 'RUNNING_MILLIS') {
+            this.state = {
+                type: 'RUNNING',
+                secondTimer: setTimeout(this.#tick.bind(this), 1000),
+                lastPerformanceTime: performance.now()
+            };
+        } else {
+            if (this.left == 0) {
+                // Timer finished
+                this.state = { type: 'FINISHED' };
+                this.finishCallback?.();
+                return;
+            }
+            this.left--;
+            this.state = {
+                type: 'RUNNING',
+                secondTimer: setTimeout(this.#tick.bind(this), 1000),
+                lastPerformanceTime: performance.now()
+            };
+            this.updateCallback?.(this.left);
+        }
+    }
+    pause() {
+        if (this.state.type !== 'RUNNING' && this.state.type !== 'RUNNING_MILLIS') throw new Error('Timer is not running');
+        if (this.state.type === 'RUNNING') {
+            clearTimeout(this.state.secondTimer!);
+            this.state = {
+                type: 'PAUSED',
+                millisecondsLeftAtPause: Math.max(0, 1000 - (performance.now() - this.state.lastPerformanceTime!))
+            };
+        } else {
+            clearTimeout(this.state.millisecondTimer);
+            this.state = {
+                type: 'PAUSED',
+                millisecondsLeftAtPause: Math.max(0, this.state.millisecondsLeft - (performance.now() - this.state.lastPerformanceTime))
+            };
+        }
+    }
+    stop() {
+        if (this.state.type === 'IDLE') throw new Error('Timer is not running');
+        if (this.state.type === 'FINISHED') throw new Error('Timer is already finished');
+        this.pause();
+        this.state = { type: 'IDLE' };
+        this.left = 0;
+    }
+    change(seconds: number) {
+        if (this.state.type === 'FINISHED') throw new Error('Timer is already finished');
+        if (this.state.type === 'RUNNING' || this.state.type === 'RUNNING_MILLIS') throw new Error('Timer is running, please pause before changing time');
+        if (this.state.type === 'IDLE') throw new Error('Timer is not active');
+        const nextSeconds = this.left + seconds;
+        if (nextSeconds < 0) {
+            this.duration -= this.left;
+            this.state = { type: 'FINISHED' };
+            this.left = 0;
+            this.updateCallback?.(this.left);
+            this.finishCallback?.();
+        } else {
+            this.duration += seconds;
+            this.left = nextSeconds;
+            this.updateCallback?.(this.left);
+        }
+    }
+    isFinished() {
+        return this.state.type === 'FINISHED';
     }
 }

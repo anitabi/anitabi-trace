@@ -61,7 +61,6 @@ const onGameFinish = () => {
     if(pointWaitTimeout) clearTimeout(pointWaitTimeout);
     inSelection.value = false;
     showOver.value = true;
-    timer.stop();
     gameStore.game.state.gameOver(timer.duration);
 };
 const timer = new TMinusTimer().setFinishCallback(onGameFinish).setUpdateCallback((seconds) => {
@@ -91,6 +90,7 @@ const handleConfirmPoint = async () => {
     if(result.point_delta) pointDelta.value = result.point_delta  > 0 ? `+${result.point_delta}` : `${result.point_delta}`;
     if(result.time_delta) timeDelta.value = result.time_delta > 0 ? `+${result.time_delta}` : `${result.time_delta}`;
     timer.change(result.time_delta || 0);
+    if (timer.isFinished()) return;
     if(result.point_delta) point.value += result.point_delta;
     pointWaitTimeout = setTimeout(() => {
         inSelection.value = true;
