@@ -2,7 +2,13 @@ import * as turf from "@turf/turf";
 import { deepCopy } from "./common";
 import type { AnyLayer, Map } from "mapbox-gl";
 import type { Feature, FeatureCollection } from "geojson";
-
+export const untilIdle = (map: Map): Promise<void> => {
+    return new Promise((resolve) => {
+        map.once('idle', () => {
+            resolve();
+        });
+    });
+};
 export const spinGlobeFunc = (map: Map, secondsPerRevolution = 240, maxSpinZoom = 5, slowSpinZoom = 3) => {
     return () => {
         const zoom = map.getZoom();

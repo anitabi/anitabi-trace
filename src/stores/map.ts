@@ -72,17 +72,17 @@ export const useMapStore = defineStore('map', {
                     'star-intensity': 0.1
                 }); // set atmosphere
             });
-            this.adjustPadding(windowHeight);
             loadSvg(pinIcon, 24, 34).then(img => {
                 if(!this._map) return;
                 this._map.addImage('pin', img);
             });
             this._map.on('load', () => {
+                this.adjustPadding(windowHeight);
+                this.initialzeLayer();
                 spinGlobeFunc(this._map!)();
+                this.spinGlobeFunc = spinGlobeFunc(this._map!);
+                this._map!.on('moveend', this.spinGlobeFunc!);
             });
-            this._map.on('load', this.initialzeLayer);
-            this.spinGlobeFunc = spinGlobeFunc(this._map);
-            this._map.on('moveend', this.spinGlobeFunc!);
         },
         initialzeLayer(){
             checkMap(this._map);
@@ -105,8 +105,8 @@ export const useMapStore = defineStore('map', {
                 if(!this._map) return;
                 this._map.flyTo({
                     center,
-                    zoom,
-                    duration: 2500,
+                    // zoom,
+                    duration: 1000,
                     padding: { top: 0, left: 0, bottom: 0, right: 0 },
                     essential: true
                 });
@@ -126,9 +126,9 @@ export const useMapStore = defineStore('map', {
                 throw new Error('Map is not initialized. Call setupMap() first.');
             }
             if(this.inAnimation){
-                this._map.flyTo({
+                this._map.jumpTo({
+                    center: [0,0],
                     padding: { top, left: 0, bottom: 0, right: 0 },
-                    animate: false
                 });
             }
         },

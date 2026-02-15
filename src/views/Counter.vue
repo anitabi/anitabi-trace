@@ -24,15 +24,18 @@ const messages: Record<number, string> = {
 };
 
 onMounted(() => {
-    const timer = setInterval(() => {
-        if (count.value > 0) {
-            count.value--;
-        } else {
-            clearInterval(timer);
-            gameStore.game.state.start();
+    setTimeout(() => {
+        // wait map to flyto padding 0
+        const timer = setInterval(() => {
+            if (count.value > 0) {
+                count.value--;
+            } else {
+                clearInterval(timer);
+                gameStore.game.state.start();
 
-        }
-    }, 1000)
+            }
+        }, 1000)
+    }, 1000);
 });
 </script>
 <style scoped>
