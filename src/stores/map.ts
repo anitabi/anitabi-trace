@@ -95,7 +95,7 @@ export const useMapStore = defineStore('map', {
             // this._map.addLayer(layerPinIconsDef);
             this._map.addLayer(layerTextLabelsDef);
         },
-        stopAnimationAndJump(center: [number, number], zoom: number){
+        stopAnimationAndJump(center: [number, number], _zoom: number){
             checkMap(this._map);
             if(this.inAnimation){
                 if(this.spinGlobeFunc) this._map.off('moveend', this.spinGlobeFunc);
