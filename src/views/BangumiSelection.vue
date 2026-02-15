@@ -18,7 +18,7 @@
                             :style="{ borderColor: item.color }" 
                         @click="bangumiId = item.id"
                         />
-                    <span class="normal-font-family text-normal"
+                    <span class="normal-font-family text-tiny"
                         :class="{ 'opacity-40': bangumiId !== null && bangumiId !== item.id }">{{ item.name }}</span>
                 </div>
             </div>

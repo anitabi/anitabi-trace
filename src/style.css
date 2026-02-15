@@ -2,7 +2,7 @@
 
 
 .normal-font-family {
-    font: 14px/1.5 "Helvetica Neue",Helvetica,Arial,"Microsoft Yahei","Hiragino Sans GB","Heiti SC","WenQuanYi Micro Hei",sans-serif;
+    font-family: "Helvetica Neue",Helvetica,Arial,"Microsoft Yahei","Hiragino Sans GB","Heiti SC","WenQuanYi Micro Hei",sans-serif;
 }
 body{
     overflow-y: hidden;
@@ -25,6 +25,7 @@ body{
 @theme {
     --text-tiny: 1.125rem;
     --text-normal: 1.5rem;
+    --text-normal--letter-spacing: 0.05em;
     --text-medium: 2.25rem;
     --text-large: 3rem;
     --text-huge: 4.5rem;
