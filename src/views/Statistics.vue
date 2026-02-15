@@ -46,8 +46,10 @@ import { css as ssoFontCss } from '../assets/fonts/SmileySans-Oblique-2.ttf?subs
 import { css as ysbFontCss } from '../assets/fonts/YouSheBiaoTiHei.ttf?subsets'
 import { useGameStore } from '../stores/game';
 import { useMapStore } from '../stores/map';
+import { useUserStore } from '../stores/user';
 const gameStore = useGameStore();
 const mapStore = useMapStore();
+const userStore = useUserStore();
 
 const handleRetry = () => {
     gameStore.game.state.retry();
@@ -120,8 +122,8 @@ const handleGenerateImg = async () => {
     ctx.font = `${36 * dpr}px ${ssoFontCss.family}`;
     ctx.fillText(generateDateString(), canvas.width - 34 * dpr, canvas.height - 41 * dpr);
 
-    ctx.font = `${48 * dpr}px ${ssoFontCss.family}`;
-    ctx.fillText(`用户昵称`, canvas.width - 34 * dpr, canvas.height - 103 * dpr);
+    ctx.font = `${48 * dpr}px `;
+    ctx.fillText(`${userStore.nickname}`, canvas.width - 34 * dpr, canvas.height - 103 * dpr);
 
     ctx.font = `${24 * dpr}px ${ssoFontCss.family}`;
     ctx.fillText('duel.anitabi.cn', canvas.width - 34 * dpr, canvas.height - 185 * dpr);
