@@ -8,9 +8,23 @@ body{
     overflow-y: hidden;
 }
 
+.underline-text::after{
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    height: 3px;
+    width: 0;
+    background-color: white;
+}
+
+.underline-text:hover::after{
+    width: 100%;
+    transition: width 0.3s ease;
+}
 @theme {
     --text-tiny: 1.125rem;
-    --text-normal: 1.25rem;
+    --text-normal: 1.5rem;
     --text-medium: 2.25rem;
     --text-large: 3rem;
     --text-huge: 4.5rem;

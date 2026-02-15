@@ -37,18 +37,4 @@ const handleStartSinglePlayerGame = () => {
 }
 </script>
 <style scoped>
-.underline-text::after{
-    content: '';
-    position: absolute;
-    left: 0;
-    bottom: -2px;
-    height: 3px;
-    width: 0;
-    background-color: white;
-}
-
-.underline-text:hover::after{
-    width: 100%;
-    transition: width 0.3s ease;
-}
 </style>
