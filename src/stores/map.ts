@@ -229,9 +229,13 @@ export const useMapStore = defineStore('map', {
             points.forEach(([coord]) => {
                 bound.extend(coord);
             });
-            if (points.length > 0) {
-                this._map.fitBounds(bound, {
-                    padding: Math.min(window.innerHeight, window.innerWidth) * 0.1,
+            if (points.length > 1) {
+                this._map.fitBounds(bound, {});
+            } else if (points.length === 1) { 
+                // It seems that when there is only one point, fitBounds may freeze the entire page,
+                // so it's safer to just flyTo the point.
+                this._map.flyTo({
+                    center: [points[0][0][0], points[0][0][1]],
                 });
             }
         },
