@@ -1,6 +1,6 @@
 import { api } from "./api";
 
-export const getDefaultBangumi = () => api.get<DefaultBangumi[]>("/bangumi");
+export const getDefaultBangumi = () => api.get<DefaultBangumi[]>("/bangumi.json");
 // {
 //     "id": "nakineko",
 //     "name":"想哭的我戴上了猫的面具",

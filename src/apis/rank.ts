@@ -1,6 +1,6 @@
 import { api } from './api';
 
-export const getRank = () => api.get<RankItem[]>('/rank');
+export const getRank = () => api.get<RankItem[]>('/rank.json');
 
 export interface RankItem {
     id: number;
