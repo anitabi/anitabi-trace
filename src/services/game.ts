@@ -73,6 +73,7 @@ export class Game{
         this.viewStore = viewStore
         this.mapStore = mapStore;
         this.state = new GameStateIdle(this);
+        this.viewStore.setDeepOverlay('FULL');
     }
     reset() {
         this.bangumiId = null;
@@ -212,7 +213,7 @@ export class GameStateFinish extends GameState{
         super(game);
     }
     retry() {
-        this.game.viewStore.setDeepOverlay(false);
+        this.game.viewStore.setDeepOverlay('FULL');
         this.game.mapStore.clearMarkers();
         this.game.viewStore.changeView('COUNTER');
         this.game.resetResult();
@@ -251,6 +252,7 @@ export class GameStateTMinus extends GameState{
         this.game.prefetchBangumiDetail(this.game.bangumiId);
     }
     start(){
+        this.game.viewStore.setDeepOverlay('HEAD_ONLY');
         this.game.viewStore.changeView('GAME');
         this.game.setState(new GameStateWorking(this.game));
     }
@@ -268,7 +270,7 @@ export class GameStateWorking extends GameState{
         };
         this.game.mapStore.clearDraw();
         this.game.mapStore.disableGameInteraction();
-        this.game.viewStore.setDeepOverlay(true);
+        this.game.viewStore.setDeepOverlay('OREO');
 
         setTimeout(() => {
             this.game.viewStore.changeView('STATISTICS');

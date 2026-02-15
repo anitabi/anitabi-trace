@@ -31,16 +31,10 @@
 import { css as titleFontCss } from '@/assets/fonts/YouSheBiaoTiHei.ttf?subsets'
 const QQ_GROUP_LINK = import.meta.env.VITE_ANITABI_QQ_GROUP_LINK;
 import { useGameStore } from '../stores/game';
-import { onMounted } from 'vue';
-import { useViewStore } from '../stores/view';
 const gameStore = useGameStore();
-const viewStore = useViewStore();
 const handleStartSinglePlayerGame = () => {
     gameStore.game.state.init('SINGLE');
 }
-onMounted(() => {
-    viewStore.setDeepOverlay(false);
-})
 </script>
 <style scoped>
 .underline-text::after{

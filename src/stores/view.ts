@@ -8,21 +8,22 @@ const VIEW_STATUS = {
      STATISTICS: 'Statistics'
 }
 export type ViewStatus = keyof typeof VIEW_STATUS;
+export type DeepOverlayStatus = 'FULL' | 'HEAD_ONLY' | 'OREO';
 export interface ViewStore{
     changeView(newView: keyof typeof VIEW_STATUS): void;
-    setDeepOverlay(value: boolean): void;
+    setDeepOverlay(value: DeepOverlayStatus): void;
 }
 export const useViewStore = defineStore('view', {
     state: () => ({
         currentView: 'WELCOME' as ViewStatus,
-        deepOverlay: false as boolean
+        deepOverlay: 'FULL' as DeepOverlayStatus
     }),
     actions: {
         changeView(newView: keyof typeof VIEW_STATUS) {
             // const oldView = this.currentView;
             this.currentView = newView;
         },
-        setDeepOverlay(value: boolean) {
+        setDeepOverlay(value: DeepOverlayStatus) {
             this.deepOverlay = value;
         }
     },

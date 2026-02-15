@@ -7,13 +7,16 @@
 
     <div class="absolute w-full h-full top-0 left-0 z-1 pointer-events-none" 
       style="background: linear-gradient(180deg, #102A51 2%, rgba(11, 60, 134, 0.4724) 44%, rgba(11, 60, 134, 0.153) 71%, rgba(0, 70, 175, 0) 100%)"
-      v-if="!isDeepOverlay"></div>
-    <div v-else class="pointer-events-none">
+      v-if="deepOverlayStatus == 'FULL'"></div>
+    <div class="pointer-events-none" v-if="deepOverlayStatus == 'OREO'">
       <div class="absolute top-0 left-0 w-full h-full pointer-events-none z-1"
           style="background: linear-gradient(180deg, #102A51 2%, rgba(11, 60, 134, 0.4724) 88%, rgba(11, 60, 134, 0.153) 142%);"></div>
       <div class="absolute top-1/2 left-0 w-full h-1/2 pointer-events-none z-3"
           style="background: linear-gradient(180deg, rgba(53, 91, 149, 0) 3%, #355B95 100%);"></div>     
     </div>
+    <div class="absolute top-0 left-0 w-full h-[76%] pointer-events-none z-3"
+        style="background: linear-gradient(180deg, #102A51 2%, rgba(11, 60, 134, 0.4724) 44%, rgba(11, 60, 134, 0.153) 71%, rgba(0, 70, 175, 0) 100%);"
+        v-if="deepOverlayStatus == 'HEAD_ONLY'"></div>
     <div :style="{ fontFamily: fontCss.family }" class="absolute w-full h-full top-0 left-0 text-white pointer-events-none z-10">
       <component :is="views[viewStore.currentView]"/>
     </div>
@@ -45,7 +48,7 @@ const views: Record<ViewStatus, Component> = {
 onUnmounted(() => {
   gameStore.game.reset();
 });
-const isDeepOverlay = computed(() => viewStore.deepOverlay);
+const deepOverlayStatus = computed(() => viewStore.deepOverlay);
 </script>
 <style scoped>
 </style>
