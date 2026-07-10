@@ -53,7 +53,7 @@ export const useMapStore = defineStore('map', {
             preserveDrawingBuffer: true,
             transformRequest: (
                 url: string,
-                resourceType: mapboxgl.ResourceType,
+                _resourceType: mapboxgl.ResourceType,
             ) => {
                 if (url.startsWith('anitabi://')) {
                     return {
