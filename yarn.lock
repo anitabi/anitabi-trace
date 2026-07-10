@@ -2954,6 +2954,7 @@ __metadata:
     "@types/mapbox-gl": "npm:^3.4.1"
     "@vitejs/plugin-vue": "npm:^5.2.3"
     "@vue/tsconfig": "npm:^0.7.0"
+    dotenv: "npm:^17.3.1"
     mapbox-gl: "npm:2.12.0"
     pinia: "npm:^3.0.3"
     rollup-plugin-visualizer: "npm:^6.0.5"
@@ -3449,6 +3450,13 @@ __metadata:
   version: 1.2.0
   resolution: "dfa@npm:1.2.0"
   checksum: 10c0/ad12f0bc73b530876672e0a9dfbaa350eeff0c876580042734a004e462eca86d7749b9dedf6b067ba54f346137ab23d16615826bbfa424a3e01ab0e2786fad3c
+  languageName: node
+  linkType: hard
+
+"dotenv@npm:^17.3.1":
+  version: 17.3.1
+  resolution: "dotenv@npm:17.3.1"
+  checksum: 10c0/c78e0c2d5a549c751e544cc60e2b95e7cb67e0c551f42e094d161c6b297aa44b630a3c2dcacf5569e529a6c2a6b84e2ab9be8d37b299d425df5a18b81ce4a35f
   languageName: node
   linkType: hard
 

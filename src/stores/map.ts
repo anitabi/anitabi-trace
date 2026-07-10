@@ -46,12 +46,25 @@ export const useMapStore = defineStore('map', {
         clickEvent: null as ((e: MapMouseEvent) => void) | null,
         inAnimation: true,
         initParameters: {
-            style: 'mapbox://styles/mapbox/streets-v9',
+            style: 'anitabi://map/streets-v9',
             projection: 'globe',
             zoom: 2.5,
             center: [0, 0],
-            preserveDrawingBuffer: true
-        } as MapboxOptions
+            preserveDrawingBuffer: true,
+            transformRequest: (
+                url: string,
+                resourceType: mapboxgl.ResourceType,
+            ) => {
+                if (url.startsWith('anitabi://')) {
+                    return {
+                        url: url.replace('anitabi://', location.origin + '/'),
+                    };
+                }
+                return {
+                    url: url,
+                };
+            },
+        } as Omit<MapboxOptions, 'container'>,
     }),
     getters: {
         hasMarker(): boolean {
