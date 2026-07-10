@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
     "build-with-analyze": "BUNDLE_ANALYZE=true vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "dependencies": {
     "@turf/turf": "^7.2.0",
@@ -28,6 +29,7 @@
     "vite": "^6.3.5",
     "vite-plugin-font": "^5.1.2",
     "vite-plugin-mock-dev-server": "^1.8.7",
+    "vitest": "^3.2.4",
     "vue-tsc": "^3.0.1"
   },
   "packageManager": "yarn@4.12.0"
