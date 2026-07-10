@@ -189,6 +189,9 @@ class GameState{
     goRank() {
         throw new Error('Method "goRank" must be implemented in derived class');
     }
+    goAuth() {
+        throw new Error('Method "goAuth" must be implemented in derived class');
+    }
     select(_bangumiId: string) {
         throw new Error('Method "select" must be implemented in derived class');
     }
@@ -224,6 +227,10 @@ export class GameStateIdle extends GameState{
     goRank() {
         this.game.viewStore.changeView('RANK');
         this.game.setState(new GameStateRank(this.game));
+    }
+    goAuth() {
+        this.game.viewStore.changeView('AUTH');
+        this.game.setState(new GameStateAuth(this.game));
     }
 }
 export class GameStateFinish extends GameState{

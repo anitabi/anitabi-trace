@@ -3,7 +3,7 @@
         <span class="text-medium">欢迎</span>
         <span class="text-large normal-font-family">{{ userStore.nickname }}</span>
     </div>
-    <button class="absolute top-10 left-10 underline-text text-medium pointer-events-auto" v-else>登录</button>
+    <button class="absolute top-10 left-10 underline-text text-medium pointer-events-auto" v-else @click="handleGoAuth">登录</button>
     <button class="absolute top-10 right-10 text-white text-medium underline-text pointer-events-auto" @click="handleGoRank">
         排行榜
     </button>
@@ -40,6 +40,9 @@ const handleStartSinglePlayerGame = () => {
 }
 const handleGoRank = () => {
     gameStore.game.state.goRank();
+}
+const handleGoAuth = () => {
+    gameStore.game.state.goAuth();
 }
 </script>
 <style scoped>
