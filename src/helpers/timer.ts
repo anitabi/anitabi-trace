@@ -1,13 +1,23 @@
+type TimerHandle = number | NodeJS.Timeout;
+
 export class TMinusTimer{
     state: { type: 'IDLE' } | 
-        { type: 'RUNNING', secondTimer: number, lastPerformanceTime: number } | 
-        { type: 'RUNNING_MILLIS', millisecondTimer: number, lastPerformanceTime: number, millisecondsLeft: number } | 
+        { type: 'RUNNING', secondTimer: TimerHandle, lastPerformanceTime: number } | 
+        { type: 'RUNNING_MILLIS', millisecondTimer: TimerHandle, lastPerformanceTime: number, millisecondsLeft: number } | 
         { type: 'PAUSED', millisecondsLeftAtPause: number } | 
         { type: 'FINISHED' } = { type: 'IDLE' };
     left: number = 0;
     duration: number = 0;
     finishCallback?: () => unknown;
     updateCallback?: (seconds: number) => unknown;
+    #generation: number = 0;
+
+    #scheduleTick(milliseconds: number): TimerHandle {
+        const generation = this.#generation;
+        return setTimeout(() => {
+            if (generation === this.#generation) this.#tick();
+        }, milliseconds);
+    }
     setFinishCallback(callback: () => unknown): TMinusTimer {
         this.finishCallback = callback;
         return this;
@@ -31,21 +41,21 @@ export class TMinusTimer{
             if (this.state.millisecondsLeftAtPause > 0) {
                 this.state = {
                     type: 'RUNNING_MILLIS',
-                    millisecondTimer: setTimeout(this.#tick.bind(this), this.state.millisecondsLeftAtPause),
+                    millisecondTimer: this.#scheduleTick(this.state.millisecondsLeftAtPause),
                     lastPerformanceTime: performance.now(),
                     millisecondsLeft: this.state.millisecondsLeftAtPause
                 };
             } else {
                 this.state = { 
                     type: 'RUNNING', 
-                    secondTimer: setTimeout(this.#tick.bind(this), 1000),
+                    secondTimer: this.#scheduleTick(1000),
                     lastPerformanceTime: performance.now() 
                 };
             }
         } else {
             this.state = {
                 type: 'RUNNING',
-                secondTimer: setTimeout(this.#tick.bind(this), 1000),
+                secondTimer: this.#scheduleTick(1000),
                 lastPerformanceTime: performance.now()
             };
         }
@@ -55,7 +65,7 @@ export class TMinusTimer{
         if (this.state.type === 'RUNNING_MILLIS') {
             this.state = {
                 type: 'RUNNING',
-                secondTimer: setTimeout(this.#tick.bind(this), 1000),
+                secondTimer: this.#scheduleTick(1000),
                 lastPerformanceTime: performance.now()
             };
         } else {
@@ -68,7 +78,7 @@ export class TMinusTimer{
             this.left--;
             this.state = {
                 type: 'RUNNING',
-                secondTimer: setTimeout(this.#tick.bind(this), 1000),
+                secondTimer: this.#scheduleTick(1000),
                 lastPerformanceTime: performance.now()
             };
             this.updateCallback?.(this.left);
@@ -113,6 +123,13 @@ export class TMinusTimer{
             this.left = nextSeconds;
             this.updateCallback?.(this.left);
         }
+    }
+    dispose() {
+        this.#generation++;
+        if (this.state.type === 'RUNNING') clearTimeout(this.state.secondTimer);
+        if (this.state.type === 'RUNNING_MILLIS') clearTimeout(this.state.millisecondTimer);
+        this.state = { type: 'IDLE' };
+        this.left = 0;
     }
     isFinished() {
         return this.state.type === 'FINISHED';

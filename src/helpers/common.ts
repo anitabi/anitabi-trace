@@ -1,5 +1,7 @@
+type TimerHandle = number | NodeJS.Timeout;
+
 export const throttle = (func: Function, delay: number): Function => {
-  let timer: number | null = null;
+  let timer: TimerHandle | null = null;
   return function(this: any, ...args: any[]) {
     if (!timer) {
       timer = setTimeout(() => {
