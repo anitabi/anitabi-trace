@@ -11,19 +11,21 @@
         <div class="mt-[10vh] w-full flex flex-col">
             <div class="flex flex-row justify-center">
                 
-                <div v-if="data" v-for="item in data" :key="item.id" class="text-center pointer-events-auto">
-                    <img :src="item.cover" 
-                        class="w-[180px] h-[225px] m-4 rounded-lg shadow-lg border-[4px] hover:scale-110 hover:opacity-100" 
-                            :class="{ 'scale-110': bangumiId === item.id, 'opacity-40': bangumiId !== null && bangumiId !== item.id }"
-                            :style="{ borderColor: item.color }" 
+                <div v-for="item in gameStore.catalog" :key="item.id" class="text-center pointer-events-auto">
+                    <img :src="item.cover"
+                        class="w-[180px] h-[225px] m-4 rounded-lg shadow-lg border-[4px] hover:scale-110 hover:opacity-100"
+                        :class="{ 'scale-110': bangumiId === item.id, 'opacity-40': bangumiId !== null && bangumiId !== item.id }"
+                        :style="{ borderColor: item.color }"
                         @click="bangumiId = item.id"
                         />
                     <span class="normal-font-family text-tiny"
                         :class="{ 'opacity-40': bangumiId !== null && bangumiId !== item.id }">{{ item.name }}</span>
                 </div>
             </div>
-            <div v-if="loading" class="m-auto text-2xl">加载中...</div>
-            <div v-if="error" class="m-auto text-2xl">出错了 qaq</div>
+            <div v-if="gameStore.catalogStatus === 'loading' || gameStore.catalogStatus === 'idle'" class="m-auto text-2xl">加载中...</div>
+            <div v-if="gameStore.catalogStatus === 'error'" class="m-auto text-2xl">
+                {{ gameStore.catalogError?.message || '出错了 qaq' }}
+            </div>
             <div class="flex flex-row mt-20 m-auto">
                 <button :class="'w-[180px] h-[76px] text-white rounded-lg shadow-xl text-medium pointer-events-auto '  +
                 (!buttonDisabled ? 'bg-gradient-to-r from-[#0073DE] to-[#00A5F1] hover:translate-y-1' : 'bg-slate-500') " @click="handleStart" :disabled="buttonDisabled">立即开始</button>
@@ -33,25 +35,22 @@
 </template>
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { useRequest } from '../apis/api.ts';
-import { getDefaultBangumi } from '../apis/bangumi.ts';
 import { useGameStore } from '../stores/game.ts';
 
 const gameStore = useGameStore();
-const { data, error, loading } = useRequest(getDefaultBangumi());
+const bangumiId = ref<string | null>(null);
 
 const buttonDisabled = computed(() => {
-    return !data.value || !bangumiId.value;
+    return gameStore.catalogStatus !== 'ready' || bangumiId.value === null;
 });
-const bangumiId = ref(null as string | null);
 const handleBack = () => {
-    gameStore.game.state.back();
+    gameStore.back();
 };
 const handleStart = () => {
-    if(!bangumiId.value) {
+    if (bangumiId.value === null) {
         return;
     }
-    gameStore.game.state.select(bangumiId.value);
+    gameStore.selectBangumi(bangumiId.value);
 };
 </script>
 <style scoped>

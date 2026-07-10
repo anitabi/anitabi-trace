@@ -83,7 +83,7 @@ const handleLoadData = async () => {
     });
 };
 const handleBack = () => {
-    gameStore.game.state.back();
+    gameStore.back();
 };
 onMounted(() => {
     handleLoadData();

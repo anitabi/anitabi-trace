@@ -36,13 +36,13 @@ import { useUserStore } from '../stores/user';
 const gameStore = useGameStore();
 const userStore = useUserStore();
 const handleStartSinglePlayerGame = () => {
-    gameStore.game.state.init('SINGLE');
+    gameStore.startSinglePlayerGame();
 }
 const handleGoRank = () => {
-    gameStore.game.state.goRank();
+    gameStore.goRank();
 }
 const handleGoAuth = () => {
-    gameStore.game.state.goAuth();
+    gameStore.goAuth();
 }
 </script>
 <style scoped>

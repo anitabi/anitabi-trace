@@ -6,7 +6,7 @@
     <h1 class="text-tiny mt-[5px] text-center">{{ gameStore.game.bangumi?.name }}</h1>
     <div class="absolute top-[34px] left-[34px] flex flex-col items-start">
         <div class="flex flex-row justify-start items-center">
-            <span class="text-huge mr-[15px]">{{ point }}</span>
+            <span class="text-huge mr-[15px]">{{ gameStore.game.point }}</span>
             <transition name="number-delta">
                 <span class="text-large" :style="{ color: pointDeltaStyle.text, textShadow: pointDeltaStyle.textShadow }" v-if="pointDelta">{{ pointDelta }}</span>
             </transition>
@@ -38,7 +38,7 @@
         
 </template>
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { Game } from '../services/game';
 import { useMapStore } from '../stores/map';
 import { TMinusTimer } from '../helpers/timer';
@@ -47,7 +47,6 @@ import { useGameStore } from '../stores/game';
 const gameStore = useGameStore();
 const message = ref('');
 const inSelection = ref(true);
-const point = ref(0);
 const leftSeconds = ref(Game.GAME_TIME_SECONDS);
 const pointDelta = ref('');
 const timeDelta = ref('');
@@ -56,12 +55,16 @@ const pointImage = ref({
     image: ''
 });
 const showOver = ref(false);
-let pointWaitTimeout = null as number | null;
+let pointWaitTimeout: ReturnType<typeof setTimeout> | undefined;
+let finished = false;
 const onGameFinish = () => {
-    if(pointWaitTimeout) clearTimeout(pointWaitTimeout);
+    if (finished) return;
+    finished = true;
+    if (pointWaitTimeout !== undefined) clearTimeout(pointWaitTimeout);
+    pointWaitTimeout = undefined;
     inSelection.value = false;
     showOver.value = true;
-    gameStore.game.state.gameOver(timer.duration);
+    gameStore.gameOver(timer.duration);
 };
 const timer = new TMinusTimer().setFinishCallback(onGameFinish).setUpdateCallback((seconds) => {
     leftSeconds.value = seconds;
@@ -80,24 +83,29 @@ const nextPoint = (next: UpdatePointData | Finished) => {
 };
 onMounted(() => {
     timer.setLeft(Game.GAME_TIME_SECONDS);
-    nextPoint(gameStore.game.nextPoint());
+    nextPoint(gameStore.nextPoint());
 });
 const handleConfirmPoint = async () => {
     inSelection.value = false;
     timer.pause();
-    const result = gameStore.game.submitAnswer();
+    const result = gameStore.submitAnswer();
     message.value = result.message;
     if(result.point_delta) pointDelta.value = result.point_delta  > 0 ? `+${result.point_delta}` : `${result.point_delta}`;
     if(result.time_delta) timeDelta.value = result.time_delta > 0 ? `+${result.time_delta}` : `${result.time_delta}`;
     timer.change(result.time_delta || 0);
     if (timer.isFinished()) return;
-    if(result.point_delta) point.value += result.point_delta;
     pointWaitTimeout = setTimeout(() => {
+        pointWaitTimeout = undefined;
         inSelection.value = true;
         message.value = pointDelta.value = timeDelta.value = '';
-        nextPoint(gameStore.game.nextPoint());
+        nextPoint(gameStore.nextPoint());
     }, Game.GAME_POINT_WAIT_MS);
 };
+
+onUnmounted(() => {
+    if (pointWaitTimeout !== undefined) clearTimeout(pointWaitTimeout);
+    timer.dispose();
+});
 const textStyleGenerate = (textColor: string, shadowColor: string) => ({
     text: textColor,
     textShadow: `

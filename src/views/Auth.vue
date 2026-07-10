@@ -24,7 +24,7 @@
 
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { onUnmounted, ref } from 'vue';
 import { useGameStore } from '../stores/game.ts';
 import { useUserStore } from '../stores/user.ts';
 import { css as ssoFontCss } from '../assets/fonts/SmileySans-Oblique-2.ttf?subsets';
@@ -33,10 +33,13 @@ const gameStore = useGameStore();
 const userStore = useUserStore();
 const nickname = ref('');
 const message = ref('');
+let messageTimeout: ReturnType<typeof setTimeout> | undefined;
 const showMsg = (msg: string) => {
     message.value = msg;
-    setTimeout(() => {
+    if (messageTimeout !== undefined) clearTimeout(messageTimeout);
+    messageTimeout = setTimeout(() => {
         message.value = '';
+        messageTimeout = undefined;
     }, 3000);
 };
 const isCJKorEnglish = (char: string) => {
@@ -71,11 +74,15 @@ const handleSubmit = () => {
         }
     }
     userStore.setNickname(nickname.value);
-    gameStore.game.state.next();
+    gameStore.authAccepted();
 };
 const handleBack = () => {
-    gameStore.game.state.back();
+    gameStore.back();
 };
+
+onUnmounted(() => {
+    if (messageTimeout !== undefined) clearTimeout(messageTimeout);
+});
 </script>
 <style scoped>
 .submit-button{

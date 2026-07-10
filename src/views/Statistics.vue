@@ -52,10 +52,10 @@ const mapStore = useMapStore();
 const userStore = useUserStore();
 
 const handleRetry = () => {
-    gameStore.game.state.retry();
+    gameStore.retry();
 };
 const handleGoHome = () => {
-    gameStore.game.state.back();
+    gameStore.back();
 };
 const generateDateString = () => {
     const now = new Date();
