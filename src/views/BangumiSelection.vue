@@ -23,9 +23,7 @@
                 </div>
             </div>
             <div v-if="gameStore.catalogStatus === 'loading' || gameStore.catalogStatus === 'idle'" class="m-auto text-2xl">加载中...</div>
-            <div v-if="gameStore.catalogStatus === 'error'" class="m-auto text-2xl">
-                {{ gameStore.catalogError?.message || '出错了 qaq' }}
-            </div>
+            <RequestError v-if="gameStore.catalogStatus === 'error'" :event-id="gameStore.catalogErrorEventId" class="m-auto text-2xl" />
             <div class="flex flex-row mt-20 m-auto">
                 <button :class="'w-[180px] h-[76px] text-white rounded-lg shadow-xl text-medium pointer-events-auto '  +
                 (!buttonDisabled ? 'bg-gradient-to-r from-[#0073DE] to-[#00A5F1] hover:translate-y-1' : 'bg-slate-500') " @click="handleStart" :disabled="buttonDisabled">立即开始</button>
@@ -35,6 +33,7 @@
 </template>
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import RequestError from '../components/RequestError.vue';
 import { useGameStore } from '../stores/game.ts';
 
 const gameStore = useGameStore();

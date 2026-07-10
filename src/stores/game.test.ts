@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => {
         apiGet: vi.fn(),
         getDefaultBangumi: vi.fn(),
         preloadImage: vi.fn(),
+        reportException: vi.fn(),
         mapStore,
         userStore
     };
@@ -32,6 +33,9 @@ vi.mock('../apis/bangumi', () => ({
 }));
 vi.mock('../helpers/preload', () => ({
     preloadImage: mocks.preloadImage
+}));
+vi.mock('../services/sentry', () => ({
+    reportException: mocks.reportException
 }));
 vi.mock('./map', () => ({
     useMapStore: () => mocks.mapStore
@@ -100,6 +104,7 @@ beforeEach(() => {
     vi.resetAllMocks();
     mocks.userStore.nickname = null;
     mocks.getDefaultBangumi.mockResolvedValue([BANGUMI_A, BANGUMI_B]);
+    mocks.reportException.mockReturnValue('event-id');
 });
 
 afterEach(() => {
@@ -157,6 +162,90 @@ describe('game flow transitions', () => {
         expect(store.pointsStatus).toBe('idle');
         expect(mocks.mapStore.stopAnimationAndJump).not.toHaveBeenCalled();
         expect(mocks.apiGet).not.toHaveBeenCalled();
+    });
+});
+
+describe('request error reporting', () => {
+    it('reports a normalized catalog failure and stores its event ID', async () => {
+        mocks.getDefaultBangumi.mockRejectedValue('catalog unavailable');
+        const store = useGameStore();
+
+        await store.initialize();
+
+        expect(mocks.reportException).toHaveBeenCalledTimes(1);
+        const reportedError = mocks.reportException.mock.calls[0][0] as Error;
+        expect(reportedError).toBeInstanceOf(Error);
+        expect(reportedError.message).toBe('catalog unavailable');
+        expect(store.catalogStatus).toBe('error');
+        expect(store.catalogErrorEventId).toBe('event-id');
+    });
+
+    it('reports the current point failure, clears its ID, and retries', async () => {
+        const failedRequest = deferred<PointDetail[]>();
+        mocks.apiGet
+            .mockReturnValueOnce(failedRequest.promise)
+            .mockResolvedValueOnce([gamePoint('retry')]);
+        mocks.userStore.nickname = 'player';
+        const store = await storeWithCatalog();
+        store.startSinglePlayerGame();
+        store.selectBangumi(BANGUMI_A.id);
+
+        const failure = new Error('points unavailable');
+        failedRequest.reject(failure);
+        await settleAsyncActions();
+
+        expect(mocks.reportException).toHaveBeenCalledWith(failure);
+        expect(store.pointsStatus).toBe('error');
+        expect(store.pointsErrorEventId).toBe('event-id');
+
+        store.retryPointLoading();
+        expect(store.pointsStatus).toBe('loading');
+        expect(store.pointsErrorEventId).toBeNull();
+        await settleAsyncActions();
+
+        expect(store.pointsStatus).toBe('ready');
+        expect(store.game.points.map(point => point.id)).toEqual(['retry']);
+        expect(mocks.reportException).toHaveBeenCalledTimes(1);
+    });
+
+    it('drops a stale point failure before reporting and preserves the current event ID', async () => {
+        const staleRequest = deferred<PointDetail[]>();
+        const currentRequest = deferred<PointDetail[]>();
+        mocks.apiGet
+            .mockReturnValueOnce(staleRequest.promise)
+            .mockReturnValueOnce(currentRequest.promise);
+        mocks.userStore.nickname = 'player';
+        const store = await storeWithCatalog();
+
+        store.startSinglePlayerGame();
+        store.selectBangumi(BANGUMI_A.id);
+        store.reset();
+        store.startSinglePlayerGame();
+        store.selectBangumi(BANGUMI_B.id);
+
+        currentRequest.reject(new Error('current failure'));
+        await settleAsyncActions();
+        expect(store.pointsErrorEventId).toBe('event-id');
+        expect(mocks.reportException).toHaveBeenCalledTimes(1);
+
+        staleRequest.reject(new Error('stale failure'));
+        await settleAsyncActions();
+
+        expect(mocks.reportException).toHaveBeenCalledTimes(1);
+        expect(store.pointsErrorEventId).toBe('event-id');
+        expect(store.pointsStatus).toBe('error');
+    });
+
+    it('stores null when reporting produces no event ID', async () => {
+        mocks.reportException.mockReturnValueOnce(undefined);
+        mocks.getDefaultBangumi.mockRejectedValueOnce(new Error('catalog unavailable'));
+        const store = useGameStore();
+
+        await store.initialize();
+
+        expect(mocks.reportException).toHaveBeenCalledTimes(1);
+        expect(store.catalogStatus).toBe('error');
+        expect(store.catalogErrorEventId).toBeNull();
     });
 });
 

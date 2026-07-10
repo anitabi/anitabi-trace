@@ -7,15 +7,15 @@
             <span v-if="!countdownFinished" :key="count" class="text-giant absolute">{{ count > 0 ? count : 'Start!' }}</span>
         </transition>
         <p v-if="!countdownFinished" class="absolute pt-70 text-normal">{{ messages[count] || '' }}</p>
-        <div v-else-if="gameStore.pointsStatus === 'error'" class="flex flex-col items-center gap-5">
-            <p class="text-normal">{{ gameStore.pointsError?.message || '题目加载失败' }}</p>
+        <RequestError v-else-if="gameStore.pointsStatus === 'error'" :event-id="gameStore.pointsErrorEventId" class="flex flex-col items-center gap-5">
             <button class="text-medium underline-text pointer-events-auto" @click="gameStore.retryPointLoading()">重试</button>
-        </div>
+        </RequestError>
         <p v-else class="text-normal">题目加载中...</p>
     </div>
 </template>
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue';
+import RequestError from '../components/RequestError.vue';
 import { useGameStore } from '../stores/game';
 
 const gameStore = useGameStore();

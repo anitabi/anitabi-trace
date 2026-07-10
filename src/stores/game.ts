@@ -5,6 +5,7 @@ import { getDefaultBangumi, type DefaultBangumi, type PointDetail } from '../api
 import { preloadImage } from '../helpers/preload';
 import { reverseCoordinate } from '../helpers/map';
 import { Game, type Finished, type UpdateGameData, type UpdatePointData } from '../services/game';
+import { reportException } from '../services/sentry';
 import { useMapStore } from './map';
 import { useUserStore } from './user';
 
@@ -60,10 +61,10 @@ export const useGameStore = defineStore('game', () => {
     // 作品目录只在协调器中加载一次；状态与错误供选择页直接展示。
     const catalog = ref<DefaultBangumi[]>([]);
     const catalogStatus = ref<LoadingStatus>('idle');
-    const catalogError = ref<Error | null>(null);
+    const catalogErrorEventId = ref<string | null>(null);
     // 点位数据由 game 持有；这里仅记录异步加载生命周期，控制何时允许进入 PLAYING。
     const pointsStatus = ref<LoadingStatus>('idle');
-    const pointsError = ref<Error | null>(null);
+    const pointsErrorEventId = ref<string | null>(null);
 
     // Epoch 用于废弃旧请求和旧结束回调，防止返回、重试后被过期异步结果覆盖。
     let pointsEpoch = 0;
@@ -96,7 +97,7 @@ export const useGameStore = defineStore('game', () => {
         if (catalogStatus.value !== 'idle') return;
 
         catalogStatus.value = 'loading';
-        catalogError.value = null;
+        catalogErrorEventId.value = null;
         try {
             const response = await getDefaultBangumi();
             catalog.value = response;
@@ -105,7 +106,8 @@ export const useGameStore = defineStore('game', () => {
                 if (item.cover) preloadImage(item.cover);
             });
         } catch (error) {
-            catalogError.value = toError(error);
+            const normalizedError = toError(error);
+            catalogErrorEventId.value = reportException(normalizedError) ?? null;
             catalogStatus.value = 'error';
         }
     };
@@ -130,7 +132,7 @@ export const useGameStore = defineStore('game', () => {
 
         const requestEpoch = ++pointsEpoch;
         pointsStatus.value = 'loading';
-        pointsError.value = null;
+        pointsErrorEventId.value = null;
         game.setPoints([]);
 
         api.get<PointDetail[]>(bangumi.points_api_url, { noBaseUrl: true })
@@ -145,7 +147,8 @@ export const useGameStore = defineStore('game', () => {
             })
             .catch(error => {
                 if (requestEpoch !== pointsEpoch) return;
-                pointsError.value = toError(error);
+                const normalizedError = toError(error);
+                pointsErrorEventId.value = reportException(normalizedError) ?? null;
                 pointsStatus.value = 'error';
             });
     };
@@ -181,7 +184,7 @@ export const useGameStore = defineStore('game', () => {
         if (resetMap) mapStore.reset();
         game.reset();
         pointsStatus.value = 'idle';
-        pointsError.value = null;
+        pointsErrorEventId.value = null;
         phase.value = { kind: 'WELCOME' };
     };
 
@@ -274,7 +277,7 @@ export const useGameStore = defineStore('game', () => {
         mapStore.stopAnimationAndJump(reverseCoordinate(bangumi.geo), bangumi.zoom);
         game.resetResult();
         pointsStatus.value = 'ready';
-        pointsError.value = null;
+        pointsErrorEventId.value = null;
         phase.value = { kind: 'COUNTDOWN', countdownElapsed: false };
     };
 
@@ -283,7 +286,7 @@ export const useGameStore = defineStore('game', () => {
         mapStore.reset();
         game.reset();
         pointsStatus.value = 'idle';
-        pointsError.value = null;
+        pointsErrorEventId.value = null;
         phase.value = { kind: 'WELCOME' };
     };
 
@@ -292,9 +295,9 @@ export const useGameStore = defineStore('game', () => {
         game,
         catalog,
         catalogStatus,
-        catalogError,
+        catalogErrorEventId,
         pointsStatus,
-        pointsError,
+        pointsErrorEventId,
         presentation,
         initialize,
         startSinglePlayerGame,
