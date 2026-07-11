@@ -1,9 +1,11 @@
 
 export class HTTPError extends Error {
     status: number
-    constructor(status: number, message: string){
+    data: unknown
+    constructor(status: number, message: string, data?: unknown){
         super(message);
         this.status = status;
+        this.data = data;
     }
     toString(){
         return `HTTPError: ${this.status} - ${this.message}`;
@@ -31,63 +33,112 @@ type ApiClientConfig = {
     baseURL?: string,
     headers?: Record<string, string>
 }
-type RequestOptions = {
+export type RequestOptions = Omit<RequestInit, 'body'> & {
     noBaseUrl?: boolean,
     methodKey?: string, // Used to identify the request, if not provided, the full URL will be used.
     force?: boolean, // If true, the request will not use cache.
     block?: boolean, // If true, the request will be blocked until the data is fetched.
-} & RequestInit
+    authenticated?: boolean,
+    retryUnauthorized?: boolean,
+    body?: unknown,
+}
+type AuthProvider = {
+    getToken: () => string | null,
+    refreshToken: () => Promise<void>,
+}
 export class ApiClient{
     baseURL: string
     headers: Record<string, string>
     requests: Record<string, Array<{resolve: Function, reject: Function}>>
     dataCache: Map<string, object>
+    authProvider: AuthProvider | null
     constructor(config: ApiClientConfig = {}){
         this.baseURL = config.baseURL || '';
         this.headers = config.headers || {};
         /*
-           Storage the resolve method of promises that shared with other requests. 
+           Storage the resolve method of promises that shared with other requests.
          */
-        this.requests = {};        
+        this.requests = {};
         this.dataCache = new Map();
+        this.authProvider = null;
     }
+
+    setAuthProvider(authProvider: AuthProvider): void {
+        this.authProvider = authProvider;
+    }
+
+    async #fetch<T>(method: HTTPMethod, fullUrl: string, options: RequestOptions, canRefresh: boolean): Promise<T> {
+        const {
+            authenticated,
+            retryUnauthorized,
+            noBaseUrl: _noBaseUrl,
+            methodKey: _methodKey,
+            force: _force,
+            block: _block,
+            body,
+            headers: optionHeaders,
+            ...requestInit
+        } = options;
+        const headers = new Headers(this.headers);
+        new Headers(optionHeaders).forEach((value, key) => headers.set(key, value));
+        if (authenticated) {
+            const token = this.authProvider?.getToken();
+            if (token) headers.set('Authorization', `Bearer ${token}`);
+        }
+        if (body !== undefined && !headers.has('Content-Type')) {
+            headers.set('Content-Type', 'application/json');
+        }
+
+        const response = await fetch(fullUrl, {
+            ...requestInit,
+            method,
+            headers,
+            body: body === undefined ? null : JSON.stringify(body),
+        });
+        if (
+            response.status === 401
+            && authenticated
+            && retryUnauthorized !== false
+            && canRefresh
+            && this.authProvider
+        ) {
+            await this.authProvider.refreshToken();
+            return this.#fetch<T>(method, fullUrl, options, false);
+        }
+        if (!response.ok) {
+            const data = await response.json().catch(() => null) as { message?: unknown } | null;
+            const message = typeof data?.message === 'string' ? data.message : response.statusText;
+            throw new HTTPError(response.status, message, data);
+        }
+        return response.json() as Promise<T>;
+    }
+
     #request<T>(method: HTTPMethod, url: string, options: RequestOptions = {}): HTTPPromise<T>{
         const fullUrl = options.noBaseUrl === true ? url : this.baseURL + url;
-
         const methodKey = options.methodKey || fullUrl.split('#')[0];
         return new HTTPPromise((resolve, reject) => {
             if (!options.force && this.dataCache.has(methodKey)){
                 console.debug(`Using cached data for ${methodKey}`);
                 // Avoid modification to returned data affects the cache,
-                return resolve(deepCopy(this.dataCache.get(methodKey)!));
+                resolve(deepCopy(this.dataCache.get(methodKey)!) as T);
+                return;
             }
             if (this.requests[methodKey] instanceof Array){
                 console.debug(`Sharing request for ${methodKey}`);
                 this.requests[methodKey].push({resolve, reject});
                 return;
             }
-            const headers = {
-                ...this.headers,
-                ...options.headers,
-            };
             console.debug(`Making real request for ${methodKey}`);
-            fetch(fullUrl, {
-                    method,
-                    headers,
-                    body: options.body ? JSON.stringify(options.body) : null,
-                }).then(response => {
-                    if (!response.ok) {
-                        throw new HTTPError(response.status, response.statusText);
-                    }
-                    return response.json();
-                }).then((data) => resolve(data))
-                .catch((error) => reject(error))
+            this.#fetch<T>(method, fullUrl, options, true).then(resolve).catch(reject);
         }, this, method, fullUrl, options);
-           
-
     }
-    get<T>(url: string, options = {}){
+
+    get<T>(url: string, options: RequestOptions = {}){
         return this.#request<T>('GET', url, options);
+    }
+
+    post<T>(url: string, body?: unknown, options: RequestOptions = {}){
+        return this.#request<T>('POST', url, { ...options, body });
     }
 
     static prefetch<T>(httpPromise: HTTPPromise<T>, callback?: (data: T | null, error: Error | null) => void): Promise<T> | void {
@@ -95,9 +146,9 @@ export class ApiClient{
         const { instance, url, options } = httpPromise;
         const methodKey = options.methodKey || url.split('#')[0];
         if (instance.requests[methodKey] instanceof Array){
-            return new Promise((resolve, reject) => {
-                instance.requests[methodKey].push({resolve, reject});
-            });
+            const { promise, resolve, reject } = Promise.withResolvers<T>();
+            instance.requests[methodKey].push({resolve, reject});
+            return promise;
         }else{
             instance.requests[methodKey] = [];
         }

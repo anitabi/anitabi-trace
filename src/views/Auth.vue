@@ -8,11 +8,12 @@
         <span v-if="modeLoading" class="text-normal mt-[31px] mb-[31px]">正在获取昵称设置...</span>
         <template v-else-if="nicknameMode !== null">
             <input v-if="nicknameMode.mode === 'free'" v-model="nickname" type="text" name="nickname" maxlength="50"
+                :disabled="turnstileRequired"
                 class="nickname-input pointer-events-auto mt-[15px] mb-[31px] normal-font-family"
                 placeholder="请输入昵称（最多50字）"
                 :style="{ '--placeholder-font-family': ssoFontCss.family }" />
             <div v-else ref="nicknameSelect" class="nickname-select pointer-events-auto mt-[15px] mb-[31px]">
-                <button type="button" class="nickname-select-trigger normal-font-family"
+                <button type="button" class="nickname-select-trigger normal-font-family" :disabled="turnstileRequired"
                     :class="{ 'nickname-select-placeholder': nickname === '' }"
                     :aria-expanded="nicknameMenuOpen" aria-haspopup="listbox"
                     @click="nicknameMenuOpen = !nicknameMenuOpen" @keydown.esc="nicknameMenuOpen = false">
@@ -27,7 +28,13 @@
                     </button>
                 </div>
             </div>
-            <button class="submit-button pointer-events-auto hover:translate-y-1" @click="handleSubmit">确认</button>
+            <Turnstile v-if="turnstileRequired" :key="turnstileKey" :sitekey="turnstileSiteKey"
+                class="pointer-events-auto mb-[20px]" @verified="handleTurnstileVerified"
+                @expired="handleTurnstileExpired" @error="handleTurnstileError" />
+            <button class="submit-button pointer-events-auto hover:translate-y-1"
+                :disabled="submitLoading || turnstileRequired" @click="handleSubmit">
+                {{ submitLoading ? '提交中...' : turnstileRequired ? '请完成验证' : '确认' }}
+            </button>
         </template>
         <template v-else>
             <span class="text-normal mt-[31px] mb-[15px]">昵称设置获取失败</span>
@@ -50,6 +57,9 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue';
+import { HTTPError } from '../apis/api.ts';
+import { registerNickname } from '../apis/auth.ts';
+import Turnstile from '../components/Turnstile.vue';
 import { getNicknameMode, type NicknameMode } from '../apis/nickname.ts';
 import { useGameStore } from '../stores/game.ts';
 import { useUserStore } from '../stores/user.ts';
@@ -60,10 +70,14 @@ const userStore = useUserStore();
 const nickname = ref('');
 const nicknameMode = ref<NicknameMode | null>(null);
 const modeLoading = ref(true);
+const submitLoading = ref(false);
+const turnstileRequired = ref(false);
+const turnstileKey = ref(0);
+const pendingNickname = ref('');
+const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
 const message = ref('');
 const nicknameMenuOpen = ref(false);
 const nicknameSelect = ref<HTMLElement | null>(null);
-let disposed = false;
 let messageTimeout: ReturnType<typeof setTimeout> | undefined;
 
 const showMsg = (msg: string) => {
@@ -81,11 +95,11 @@ const loadNicknameMode = async () => {
     nickname.value = '';
     try {
         const response = await getNicknameMode();
-        if (!disposed) nicknameMode.value = response;
+        nicknameMode.value = response;
     } catch {
-        if (!disposed) showMsg('无法获取昵称设置，请稍后重试');
+        showMsg('无法获取昵称设置，请稍后重试');
     } finally {
-        if (!disposed) modeLoading.value = false;
+        modeLoading.value = false;
     }
 };
 
@@ -99,8 +113,53 @@ const handleDocumentClick = (event: MouseEvent) => {
     nicknameMenuOpen.value = false;
 };
 
+const submitNickname = async (selectedNickname: string, turnstileToken?: string) => {
+    submitLoading.value = true;
+    try {
+        const result = await registerNickname(selectedNickname, turnstileToken);
+        turnstileRequired.value = false;
+        userStore.setNickname(result.nickname);
+        gameStore.authAccepted();
+    } catch (error) {
+        const data = error instanceof HTTPError
+            ? error.data as { code?: unknown; mode?: unknown; nicknames?: unknown } | null
+            : null;
+        if (error instanceof HTTPError && error.status === 403 && data?.code === 'turnstile_required') {
+            pendingNickname.value = selectedNickname;
+            turnstileRequired.value = true;
+            turnstileKey.value += 1;
+            showMsg('请完成人机验证');
+            return;
+        }
+        if (error instanceof HTTPError && error.status === 403 && data?.code === 'turnstile_failed') {
+            pendingNickname.value = selectedNickname;
+            turnstileRequired.value = true;
+            turnstileKey.value += 1;
+            showMsg('验证失败，请重试');
+            return;
+        }
+
+        turnstileRequired.value = false;
+        if (error instanceof HTTPError && error.status === 429) {
+            if (data?.mode === 'preset' && Array.isArray(data.nicknames) && data.nicknames.every(item => typeof item === 'string')) {
+                nicknameMode.value = { mode: 'preset', nicknames: data.nicknames };
+                nickname.value = '';
+                showMsg('请从预设昵称中选择');
+                return;
+            }
+        }
+        if (error instanceof HTTPError && error.status === 400) {
+            showMsg('昵称不可用，请更换后重试');
+        } else {
+            showMsg('昵称注册失败，请稍后重试');
+        }
+    } finally {
+        submitLoading.value = false;
+    }
+};
+
 const handleSubmit = () => {
-    if (nicknameMode.value === null) return;
+    if (nicknameMode.value === null || submitLoading.value || turnstileRequired.value) return;
 
     const selectedNickname = nickname.value.trim();
     if (nicknameMode.value.mode === 'free') {
@@ -113,8 +172,23 @@ const handleSubmit = () => {
         return;
     }
 
-    userStore.setNickname(selectedNickname);
-    gameStore.authAccepted();
+    void submitNickname(selectedNickname);
+};
+
+const handleTurnstileVerified = (token: string) => {
+    const selectedNickname = pendingNickname.value;
+    if (!selectedNickname || submitLoading.value) return;
+    turnstileRequired.value = false;
+    void submitNickname(selectedNickname, token);
+};
+
+const handleTurnstileExpired = () => {
+    turnstileKey.value += 1;
+    showMsg('验证已过期，请重试');
+};
+
+const handleTurnstileError = () => {
+    showMsg(turnstileSiteKey ? '验证加载失败，请稍后重试' : '验证不可用');
 };
 
 const handleBack = () => {
@@ -126,7 +200,6 @@ onMounted(() => {
     document.addEventListener('click', handleDocumentClick);
 });
 onUnmounted(() => {
-    disposed = true;
     document.removeEventListener('click', handleDocumentClick);
     if (messageTimeout !== undefined) clearTimeout(messageTimeout);
 });
@@ -144,6 +217,11 @@ onUnmounted(() => {
     font-size: 36px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
+.submit-button:disabled{
+    opacity: 0.7;
+    cursor: wait;
+    transform: none;
+}
 .nickname-input{
     background: 
     linear-gradient(#FFF 0 0) padding-box,
@@ -158,9 +236,17 @@ onUnmounted(() => {
     height: 64px;
     color: #111111;
 }
+.nickname-input:disabled{
+    cursor: not-allowed;
+    opacity: 0.7;
+}
 .nickname-select{
     position: relative;
     width: 328px;
+}
+.nickname-select-trigger:disabled{
+    cursor: not-allowed;
+    opacity: 0.7;
 }
 .nickname-select-trigger{
     position: relative;
