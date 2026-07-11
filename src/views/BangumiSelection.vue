@@ -13,7 +13,7 @@
                 
                 <div v-for="item in gameStore.catalog" :key="item.id" class="text-center pointer-events-auto">
                     <img :src="item.cover"
-                        class="w-[180px] h-[225px] m-4 rounded-lg shadow-lg border-[4px] hover:scale-110 hover:opacity-100"
+                        class="w-[180px] h-[225px] m-4 rounded-lg bg-gray-200 shadow-lg border-[4px] hover:scale-110 hover:opacity-100"
                         :class="{ 'scale-110': bangumiId === item.id, 'opacity-40': bangumiId !== null && bangumiId !== item.id }"
                         :style="{ borderColor: item.color }"
                         @click="bangumiId = item.id"
