@@ -5,11 +5,36 @@
         </button>
         <h1 class="mt-[138px] text-huge">昵称</h1>
         <span class="text-normal">无需注册就能玩~</span>
-        <input type="text" name="nickname" v-model="nickname" 
-            class="nickname-input pointer-events-auto mt-[15px] mb-[31px] normal-font-family"
-            placeholder="中英日2-10位"
-            :style="{ '--placeholder-font-family': ssoFontCss.family }"/>
-        <button class="submit-button pointer-events-auto hover:translate-y-1" @click="handleSubmit">确认</button>
+        <span v-if="modeLoading" class="text-normal mt-[31px] mb-[31px]">正在获取昵称设置...</span>
+        <template v-else-if="nicknameMode !== null">
+            <input v-if="nicknameMode.mode === 'free'" v-model="nickname" type="text" name="nickname" maxlength="50"
+                class="nickname-input pointer-events-auto mt-[15px] mb-[31px] normal-font-family"
+                placeholder="请输入昵称（最多50字）"
+                :style="{ '--placeholder-font-family': ssoFontCss.family }" />
+            <div v-else ref="nicknameSelect" class="nickname-select pointer-events-auto mt-[15px] mb-[31px]">
+                <button type="button" class="nickname-select-trigger normal-font-family"
+                    :class="{ 'nickname-select-placeholder': nickname === '' }"
+                    :aria-expanded="nicknameMenuOpen" aria-haspopup="listbox"
+                    @click="nicknameMenuOpen = !nicknameMenuOpen" @keydown.esc="nicknameMenuOpen = false">
+                    <span>{{ nickname || '请选择昵称' }}</span>
+                    <span class="nickname-select-arrow" :class="{ 'nickname-select-arrow-open': nicknameMenuOpen }" aria-hidden="true"></span>
+                </button>
+                <div v-if="nicknameMenuOpen" class="nickname-select-menu" role="listbox" aria-label="昵称选项">
+                    <button v-for="option in nicknameMode.nicknames" :key="option" type="button" role="option"
+                        class="nickname-select-option normal-font-family" :class="{ 'nickname-select-option-active': nickname === option }"
+                        :aria-selected="nickname === option" @click="selectNickname(option)">
+                        {{ option }}
+                    </button>
+                </div>
+            </div>
+            <button class="submit-button pointer-events-auto hover:translate-y-1" @click="handleSubmit">确认</button>
+        </template>
+        <template v-else>
+            <span class="text-normal mt-[31px] mb-[15px]">昵称设置获取失败</span>
+            <button class="text-medium pointer-events-auto mb-[31px]" @click="loadNicknameMode">
+                <span class="underline-text relative">重试</span>
+            </button>
+        </template>
         <button class="text-medium pointer-events-auto mt-[42px]">
             <span class="underline-text relative">已注册？直接登录</span>
         </button>
@@ -24,7 +49,8 @@
 
 
 <script setup lang="ts">
-import { onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
+import { getNicknameMode, type NicknameMode } from '../apis/nickname.ts';
 import { useGameStore } from '../stores/game.ts';
 import { useUserStore } from '../stores/user.ts';
 import { css as ssoFontCss } from '../assets/fonts/SmileySans-Oblique-2.ttf?subsets';
@@ -32,8 +58,14 @@ import { css as ssoFontCss } from '../assets/fonts/SmileySans-Oblique-2.ttf?subs
 const gameStore = useGameStore();
 const userStore = useUserStore();
 const nickname = ref('');
+const nicknameMode = ref<NicknameMode | null>(null);
+const modeLoading = ref(true);
 const message = ref('');
+const nicknameMenuOpen = ref(false);
+const nicknameSelect = ref<HTMLElement | null>(null);
+let disposed = false;
 let messageTimeout: ReturnType<typeof setTimeout> | undefined;
+
 const showMsg = (msg: string) => {
     message.value = msg;
     if (messageTimeout !== undefined) clearTimeout(messageTimeout);
@@ -42,45 +74,60 @@ const showMsg = (msg: string) => {
         messageTimeout = undefined;
     }, 3000);
 };
-const isCJKorEnglish = (char: string) => {
-  const code = char.codePointAt(0);
-  if (!code) return false;
-  return (
-    // English A-Z a-z
-    (code >= 0x41 && code <= 0x5A) ||
-    (code >= 0x61 && code <= 0x7A) ||
 
-    // Hiragana
-    (code >= 0x3040 && code <= 0x309F) ||
-
-    // Katakana
-    (code >= 0x30A0 && code <= 0x30FF) ||
-    (code >= 0xFF65 && code <= 0xFF9F) ||
-
-    // CJK Unified Ideographs (常用汉字范围)
-    (code >= 0x4E00 && code <= 0x9FFF) ||
-    (code >= 0x3400 && code <= 0x4DBF)
-  );
-}
-const handleSubmit = () => {
-    if (nickname.value.length < 2 || nickname.value.length > 10) {
-        showMsg('昵称长度应为2-10位');
-        return;
+const loadNicknameMode = async () => {
+    modeLoading.value = true;
+    nicknameMode.value = null;
+    nickname.value = '';
+    try {
+        const response = await getNicknameMode();
+        if (!disposed) nicknameMode.value = response;
+    } catch {
+        if (!disposed) showMsg('无法获取昵称设置，请稍后重试');
+    } finally {
+        if (!disposed) modeLoading.value = false;
     }
-    for (const char of nickname.value) {
-        if (!isCJKorEnglish(char)) {
-            showMsg('昵称只能包含中文、英文字符');
+};
+
+const selectNickname = (option: string) => {
+    nickname.value = option;
+    nicknameMenuOpen.value = false;
+};
+
+const handleDocumentClick = (event: MouseEvent) => {
+    if (nicknameSelect.value?.contains(event.target as Node)) return;
+    nicknameMenuOpen.value = false;
+};
+
+const handleSubmit = () => {
+    if (nicknameMode.value === null) return;
+
+    const selectedNickname = nickname.value.trim();
+    if (nicknameMode.value.mode === 'free') {
+        if (selectedNickname.length === 0 || selectedNickname.length > 50) {
+            showMsg('昵称长度应为1-50字');
             return;
         }
+    } else if (!nicknameMode.value.nicknames.includes(selectedNickname)) {
+        showMsg('请选择一个昵称');
+        return;
     }
-    userStore.setNickname(nickname.value);
+
+    userStore.setNickname(selectedNickname);
     gameStore.authAccepted();
 };
+
 const handleBack = () => {
     gameStore.back();
 };
 
+onMounted(() => {
+    void loadNicknameMode();
+    document.addEventListener('click', handleDocumentClick);
+});
 onUnmounted(() => {
+    disposed = true;
+    document.removeEventListener('click', handleDocumentClick);
     if (messageTimeout !== undefined) clearTimeout(messageTimeout);
 });
 </script>
@@ -110,6 +157,78 @@ onUnmounted(() => {
     width: 328px;
     height: 64px;
     color: #111111;
+}
+.nickname-select{
+    position: relative;
+    width: 328px;
+}
+.nickname-select-trigger{
+    position: relative;
+    width: 100%;
+    height: 64px;
+    padding: 0 52px 0 20px;
+    border: 4px solid #0077E0;
+    border-radius: 10px;
+    background: #FFF;
+    color: #111111;
+    font-size: 28px;
+    line-height: 1.2;
+    text-align: center;
+    outline: none;
+}
+.nickname-select-trigger:focus-visible{
+    box-shadow: 0 0 0 3px rgba(0, 119, 224, 0.25);
+}
+.nickname-select-placeholder{
+    color: #777777;
+}
+.nickname-select-arrow{
+    position: absolute;
+    top: 50%;
+    right: 20px;
+    width: 12px;
+    height: 12px;
+    border-right: 3px solid #0077E0;
+    border-bottom: 3px solid #0077E0;
+    transform: translateY(-70%) rotate(45deg);
+    transition: transform 150ms ease;
+}
+.nickname-select-arrow-open{
+    transform: translateY(-30%) rotate(225deg);
+}
+.nickname-select-menu{
+    position: absolute;
+    z-index: 10;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 100%;
+    max-height: 288px;
+    padding: 8px;
+    overflow-y: auto;
+    border: 3px solid #0077E0;
+    border-radius: 10px;
+    background: #FFF;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+.nickname-select-option{
+    display: block;
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: 7px;
+    color: #111111;
+    font-size: 26px;
+    line-height: 1.2;
+    text-align: center;
+}
+.nickname-select-option:hover,
+.nickname-select-option:focus-visible{
+    background: #E5F4FF;
+    color: #006BCB;
+    outline: none;
+}
+.nickname-select-option-active{
+    background: #0077E0;
+    color: #FFF;
 }
 .nickname-input::placeholder{
     color: #999999;
