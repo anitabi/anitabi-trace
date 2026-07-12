@@ -24,9 +24,9 @@ export type GameMode = keyof typeof GAME_MODE;
 
 export interface GameBangumi {
     id: string;
-    name: string;
+    name: string | null;
     cover: string;
-    color: string;
+    color: string | 0;
     points_api_url: string;
     geo: [number, number];
     zoom: number;

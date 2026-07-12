@@ -137,6 +137,24 @@ describe('game flow transitions', () => {
         expect(store.presentation).toEqual({ screen: 'WELCOME', overlay: 'FULL' });
     });
 
+    it('preloads only the first catalog row', async () => {
+        const catalog = Array.from({ length: 5 }, (_, index) => ({
+            ...BANGUMI_A,
+            id: `show-${index}`,
+            cover: `cover-${index}.jpg`
+        }));
+        mocks.getDefaultBangumi.mockResolvedValue(catalog);
+
+        await storeWithCatalog();
+
+        expect(mocks.preloadImage.mock.calls).toEqual([
+            ['cover-0.jpg'],
+            ['cover-1.jpg'],
+            ['cover-2.jpg'],
+            ['cover-3.jpg']
+        ]);
+    });
+
     it('returns from rank without retaining a second navigation state', () => {
         const store = useGameStore();
 

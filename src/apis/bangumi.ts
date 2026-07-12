@@ -1,20 +1,48 @@
 import { api } from "./api";
-
-export const getDefaultBangumi = () => api.get<DefaultBangumi[]>("/bangumi");
-// {
-//     "id": "nakineko",
-//     "name":"想哭的我戴上了猫的面具",
-//     "cover":"https://image.anitabi.cn/bangumi/299202.jpg?plan=h360",
-//     "color":"#714739",
-//     "points_api_url":"https://api.anitabi.cn/bangumi/299202/points/detail",
-//     "geo":[34.33669,136.84051],
-//     "zoom": 14
-// }
+interface BangumiResponse {
+    fields: string[];
+    rows: unknown[][];
+}
+export const getDefaultBangumi = () => api.get<BangumiResponse>("/bangumi").then(res => {
+    if (!Array.isArray(res.rows) || !Array.isArray(res.fields)) {
+        throw new Error("Invalid response format");
+    }
+    return res.rows.map(row => {
+        const bangumi: Record<string, unknown> = {};
+        res.fields.forEach((field, index) => {
+            bangumi[field] = row[index];
+        });
+        bangumi["points_api_url"] = `https://api.anitabi.cn/bangumi/${bangumi["id"]}/points/detail`;
+        return bangumi as unknown as DefaultBangumi;
+    });
+});
+//   "fields": [
+//     "id",
+//     "name",
+//     "cover",
+//     "color",
+//     "points_api_url",
+//     "geo",
+//     "zoom"
+//   ],
+//   "rows": [
+//     [
+//       88290,
+//       "请问您今天要来点兔子吗？",
+//       "https://img-tc.anitabi.cn/bangumi/88290_uh69pso63.jpg",
+//       "#d17c60",
+//       "https://api.anitabi.cn/bangumi/88290/points/detail",
+//       [
+//         48.077821,
+//         7.352337
+//       ],
+//       8.2
+//     ],
 export interface DefaultBangumi {
     id: string;
-    name: string;
+    name: string | null;
     cover: string;
-    color: string;
+    color: string | 0;
     points_api_url: string;
     geo: [number, number];
     zoom: number;

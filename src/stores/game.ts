@@ -102,7 +102,7 @@ export const useGameStore = defineStore('game', () => {
             const response = await getDefaultBangumi();
             catalog.value = response;
             catalogStatus.value = 'ready';
-            response.forEach(item => {
+            response.slice(0, 4).forEach(item => {
                 if (item.cover) preloadImage(item.cover);
             });
         } catch (error) {
