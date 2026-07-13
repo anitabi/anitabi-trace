@@ -127,17 +127,19 @@ const handleStart = () => {
 }
 
 .search-input{
-    background:
+    /* background:
     linear-gradient(#FFF 0 0) padding-box,
     linear-gradient(to right, #00A3F0, #0077E0) border-box;
     border-radius: 10px;
-    border: 4px solid #0077E0;
+    border: 4px solid #0077E0; */
+    border-width: 0 0 3px 0;
+    border-color: #FFFFFF;
     padding: 18px 20px;
     outline: none;
     font-size: 28px;
     text-align: center;
     height: 64px;
-    color: #111111;
+    color: #FFFFFF;
 }
 
 .search-input::placeholder{
