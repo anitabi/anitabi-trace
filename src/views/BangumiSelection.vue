@@ -19,8 +19,8 @@
                     <div ref="bangumiList" class="bangumi-list grid grid-cols-[repeat(4,212px)] w-full h-full overflow-y-auto overflow-x-hidden justify-start"
                         @scroll.passive="loadVisibleCovers">
                     <div v-for="item in filteredCatalog" :key="item.id" class="text-center pointer-events-auto">
-                        <img :src="loadedCoverIds.has(item.id) ? item.cover : undefined"
-                            class="w-[180px] h-[225px] m-4 rounded-lg bg-gray-200 shadow-lg border-[4px] hover:scale-110 hover:opacity-100"
+                        <img :src="loadedCoverIds.has(item.id) ? `${item.cover}?plan=h360` : undefined"
+                            class="w-[180px] h-[225px] object-cover m-4 rounded-lg bg-gray-200 shadow-lg border-[4px] hover:scale-110 hover:opacity-100"
                             :class="{ 'scale-110': bangumiId === item.id, 'opacity-40': bangumiId !== null && bangumiId !== item.id }"
                             :style="{ borderColor: item.color || '#0070e0' }"
                             @click="bangumiId = item.id"
