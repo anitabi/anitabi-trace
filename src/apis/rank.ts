@@ -1,16 +1,18 @@
 import { api } from './api';
 
-export const getRank = () => api.get<RankItem[]>('/rank');
+export const getLeaderboard = (projectId: string | number) => api.get<LeaderboardResponse>(
+    `/leaderboard?id=${encodeURIComponent(projectId)}`,
+    { force: true }
+);
 
-export interface RankItem {
+export interface LeaderboardResponse {
     id: number;
-    name: string;
-    ranks: Rank[]
+    leaderboard: LeaderboardEntry[];
 }
 
-export interface Rank {
-    rank: number;
-    user: string;
-    rank_delta: number;
+export interface LeaderboardEntry {
+    fingerprint: string;
+    nickname: string;
     score: number;
+    rank_delta: number;
 }
