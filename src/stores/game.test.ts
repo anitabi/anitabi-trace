@@ -13,11 +13,14 @@ const mocks = vi.hoisted(() => {
         clearMarkers: vi.fn(),
         reset: vi.fn()
     };
-    const userStore = { nickname: null as string | null };
+    const userStore = { nickname: null as string | null, clearNickname: vi.fn() };
 
     return {
         apiGet: vi.fn(),
         getDefaultBangumi: vi.fn(),
+        startGame: vi.fn(),
+        uploadGrade: vi.fn(),
+        clearAuthentication: vi.fn(),
         preloadImage: vi.fn(),
         reportException: vi.fn(),
         mapStore,
@@ -26,10 +29,27 @@ const mocks = vi.hoisted(() => {
 });
 
 vi.mock('../apis/api', () => ({
-    api: { get: mocks.apiGet }
+    api: { get: mocks.apiGet },
+    HTTPError: class HTTPError extends Error {
+        status: number;
+        data: unknown;
+
+        constructor(status: number, message: string, data?: unknown) {
+            super(message);
+            this.status = status;
+            this.data = data;
+        }
+    }
 }));
 vi.mock('../apis/bangumi', () => ({
     getDefaultBangumi: mocks.getDefaultBangumi
+}));
+vi.mock('../apis/auth', () => ({
+    clearAuthentication: mocks.clearAuthentication
+}));
+vi.mock('../apis/game', () => ({
+    startGame: mocks.startGame,
+    uploadGrade: mocks.uploadGrade
 }));
 vi.mock('../helpers/preload', () => ({
     preloadImage: mocks.preloadImage
@@ -48,7 +68,7 @@ import type { DefaultBangumi, PointDetail } from '../apis/bangumi';
 import { useGameStore } from './game';
 
 const BANGUMI_A: DefaultBangumi = {
-    id: 'show-a',
+    id: 101,
     name: 'Show A',
     cover: 'cover-a.jpg',
     color: '#111',
@@ -58,7 +78,7 @@ const BANGUMI_A: DefaultBangumi = {
 };
 
 const BANGUMI_B: DefaultBangumi = {
-    id: 'show-b',
+    id: 102,
     name: 'Show B',
     cover: 'cover-b.jpg',
     color: '#222',
@@ -104,6 +124,8 @@ beforeEach(() => {
     vi.resetAllMocks();
     mocks.userStore.nickname = null;
     mocks.getDefaultBangumi.mockResolvedValue([BANGUMI_A, BANGUMI_B]);
+    mocks.startGame.mockResolvedValue({ start_time: 1_000, start_key: 'start-key' });
+    mocks.uploadGrade.mockResolvedValue({ message: 'Ok', score_percentile: '75%', rank: '42' });
     mocks.reportException.mockReturnValue('event-id');
 });
 
@@ -172,7 +194,7 @@ describe('game flow transitions', () => {
         const store = await storeWithCatalog();
         store.startSinglePlayerGame();
 
-        expect(() => store.selectBangumi('missing')).toThrow('not found');
+        expect(() => store.selectBangumi(999)).toThrow('not found');
 
         expect(store.phase).toEqual({ kind: 'SELECTING' });
         expect(store.presentation).toEqual({ screen: 'BANGUMI_SELECTION', overlay: 'FULL' });
@@ -364,5 +386,133 @@ describe('finishing transition', () => {
         vi.advanceTimersByTime(10_000);
         expect(store.phase).toEqual({ kind: 'RESULTS' });
         expect(mocks.mapStore.showPointsAsMarkerWithText).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('game start and grade upload', () => {
+    it('waits for the signed game start after countdown and points are ready', async () => {
+        const startRequest = deferred<{ start_time: number; start_key: string }>();
+        mocks.startGame.mockReturnValue(startRequest.promise);
+        mocks.apiGet.mockResolvedValue([gamePoint('first'), gamePoint('second')]);
+        mocks.userStore.nickname = 'player';
+        const store = await storeWithCatalog();
+
+        store.startSinglePlayerGame();
+        store.selectBangumi(BANGUMI_A.id);
+        await settleAsyncActions();
+        store.countdownElapsed();
+
+        expect(mocks.startGame).toHaveBeenCalledWith(BANGUMI_A.id);
+        expect(store.pointsStatus).toBe('ready');
+        expect(store.gameStartStatus).toBe('loading');
+        expect(store.phase).toEqual({ kind: 'COUNTDOWN', countdownElapsed: true });
+        expect(mocks.mapStore.enableGameInteraction).not.toHaveBeenCalled();
+
+        startRequest.resolve({ start_time: 2_000, start_key: 'signed-start' });
+        await settleAsyncActions();
+
+        expect(store.gameStartStatus).toBe('ready');
+        expect(store.phase).toEqual({ kind: 'PLAYING' });
+        expect(mocks.mapStore.enableGameInteraction).toHaveBeenCalledOnce();
+    });
+
+    it('retries a failed game start with a new request', async () => {
+        mocks.startGame
+            .mockRejectedValueOnce(new Error('start unavailable'))
+            .mockResolvedValueOnce({ start_time: 3_000, start_key: 'retry-start' });
+        mocks.apiGet.mockResolvedValue([gamePoint('first'), gamePoint('second')]);
+        mocks.userStore.nickname = 'player';
+        const store = await storeWithCatalog();
+
+        store.startSinglePlayerGame();
+        store.selectBangumi(BANGUMI_A.id);
+        await settleAsyncActions();
+
+        expect(store.gameStartStatus).toBe('error');
+        expect(store.gameStartErrorEventId).toBe('event-id');
+
+        store.retryPreparation();
+        expect(store.gameStartStatus).toBe('loading');
+        expect(store.gameStartErrorEventId).toBeNull();
+        await settleAsyncActions();
+
+        expect(mocks.startGame).toHaveBeenCalledTimes(2);
+        expect(store.gameStartStatus).toBe('ready');
+    });
+
+    it('uploads one finished grade with signed credentials and publishes its percentile', async () => {
+        vi.useFakeTimers();
+        const uploadRequest = deferred<{ message: string; score_percentile: string; rank: string }>();
+        mocks.startGame.mockResolvedValue({ start_time: 4_000, start_key: 'upload-start' });
+        mocks.uploadGrade.mockReturnValue(uploadRequest.promise);
+        mocks.apiGet.mockResolvedValue([gamePoint('first'), gamePoint('second')]);
+        mocks.mapStore.drawConnectionAndPoints.mockReturnValue(2);
+        mocks.userStore.nickname = 'player';
+        const store = await storeWithCatalog();
+
+        store.startSinglePlayerGame();
+        store.selectBangumi(BANGUMI_A.id);
+        await settleAsyncActions();
+        store.countdownElapsed();
+        store.nextPoint();
+        store.submitAnswer();
+        store.gameOver(20);
+        vi.advanceTimersByTime(1_000);
+
+        expect(store.phase).toEqual({ kind: 'RESULTS' });
+        expect(store.canUploadGrade).toBe(true);
+
+        const firstUpload = store.uploadGrade('turnstile-token');
+        const duplicateUpload = store.uploadGrade('ignored-token');
+
+        expect(mocks.uploadGrade).toHaveBeenCalledOnce();
+        expect(mocks.uploadGrade).toHaveBeenCalledWith({
+            start_time: 4_000,
+            start_key: 'upload-start',
+            id: BANGUMI_A.id,
+            point_num: 1,
+            score: 10,
+            turnstile_token: 'turnstile-token'
+        });
+
+        uploadRequest.resolve({ message: 'Ok', score_percentile: '12%', rank: '88' });
+        await Promise.all([firstUpload, duplicateUpload]);
+
+        expect(store.gradeUploadStatus).toBe('ready');
+        expect(store.scorePercentile).toBe('12%');
+        expect(store.rank).toBe('88');
+        expect(store.canUploadGrade).toBe(false);
+    });
+
+    it('reports an upload failure and permits a fresh Turnstile retry', async () => {
+        vi.useFakeTimers();
+        mocks.startGame.mockResolvedValue({ start_time: 5_000, start_key: 'retry-upload-start' });
+        mocks.uploadGrade
+            .mockRejectedValueOnce(new Error('upload unavailable'))
+            .mockResolvedValueOnce({ message: 'Ok', score_percentile: '100%', rank: '1' });
+        mocks.apiGet.mockResolvedValue([gamePoint('first'), gamePoint('second')]);
+        mocks.mapStore.drawConnectionAndPoints.mockReturnValue(2);
+        mocks.userStore.nickname = 'player';
+        const store = await storeWithCatalog();
+
+        store.startSinglePlayerGame();
+        store.selectBangumi(BANGUMI_A.id);
+        await settleAsyncActions();
+        store.countdownElapsed();
+        store.nextPoint();
+        store.submitAnswer();
+        store.gameOver(20);
+        vi.advanceTimersByTime(1_000);
+
+        await expect(store.uploadGrade('failed-token')).rejects.toThrow('upload unavailable');
+        expect(store.gradeUploadStatus).toBe('error');
+        expect(store.gradeUploadErrorEventId).toBe('event-id');
+        expect(store.canUploadGrade).toBe(true);
+
+        await expect(store.uploadGrade('retry-token')).resolves.toBeUndefined();
+        expect(mocks.uploadGrade).toHaveBeenCalledTimes(2);
+        expect(store.gradeUploadStatus).toBe('ready');
+        expect(store.scorePercentile).toBe('100%');
+        expect(store.rank).toBe('1');
     });
 });

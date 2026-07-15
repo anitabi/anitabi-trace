@@ -23,7 +23,7 @@ export const GAME_MODE = {
 export type GameMode = keyof typeof GAME_MODE;
 
 export interface GameBangumi {
-    id: string;
+    id: number;
     name: string | null;
     cover: string;
     color: string | 0;
@@ -94,7 +94,7 @@ export class Game {
         }
     };
 
-    bangumiId: string | null = null;
+    bangumiId: number | null = null;
     points: PointExtended[] = [];
     currentIndex = 0;
     mode: GameMode = 'SINGLE';

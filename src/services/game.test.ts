@@ -47,7 +47,7 @@ describe('Game scoring', () => {
     it('resets run results while preserving the selected game and loaded point answers', () => {
         const game = new Game();
         game.selectBangumi({
-            id: 'show',
+            id: 101,
             name: 'Show',
             cover: 'cover.jpg',
             color: '#fff',
@@ -65,7 +65,7 @@ describe('Game scoring', () => {
         expect(game.point).toBe(0);
         expect(game.currentIndex).toBe(0);
         expect(game.statistics).toBeUndefined();
-        expect(game.bangumiId).toBe('show');
+        expect(game.bangumiId).toBe(101);
         expect(game.points).toHaveLength(2);
         expect(game.completedPoints()).toHaveLength(1);
     });

@@ -1,7 +1,9 @@
 import { computed, reactive, ref } from 'vue';
 import { defineStore } from 'pinia';
-import { api } from '../apis/api';
+import { HTTPError, api } from '../apis/api';
 import { getDefaultBangumi, type DefaultBangumi, type PointDetail } from '../apis/bangumi';
+import { clearAuthentication } from '../apis/auth';
+import { startGame, uploadGrade as submitGrade, type GradeUploadResult, type GameStartResult } from '../apis/game';
 import { preloadImage } from '../helpers/preload';
 import { reverseCoordinate } from '../helpers/map';
 import { Game, type Finished, type UpdateGameData, type UpdatePointData } from '../services/game';
@@ -31,6 +33,11 @@ export type Screen =
 export type Overlay = 'FULL' | 'HEAD_ONLY' | 'OREO';
 export type LoadingStatus = 'idle' | 'loading' | 'ready' | 'error';
 
+type PreparationCredentials = {
+    startTime: number;
+    startKey: string;
+};
+
 const PRESENTATION = {
     WELCOME: { screen: 'WELCOME', overlay: 'FULL' },
     AUTH: { screen: 'AUTH', overlay: 'FULL' },
@@ -50,29 +57,54 @@ const toError = (error: unknown): Error => {
     return error instanceof Error ? error : new Error(String(error));
 };
 
+const isUnauthorized = (error: unknown): boolean => {
+    return error instanceof HTTPError && error.status === 401;
+};
+
+const clearCompletedPointProgress = (game: Game): void => {
+    game.points.forEach(point => {
+        delete point.extend;
+    });
+};
+
 export const useGameStore = defineStore('game', () => {
     const mapStore = useMapStore();
     const userStore = useUserStore();
 
-    // 唯一可写的流程状态；当前界面和遮罩均由 phase 投影，避免多份导航状态失配。
     const phase = ref<GamePhase>({ kind: 'WELCOME' });
-    // 响应式领域会话，保存作品、点位、进度、分数和统计结果。
     const game = reactive(new Game());
-    // 作品目录只在协调器中加载一次；状态与错误供选择页直接展示。
     const catalog = ref<DefaultBangumi[]>([]);
     const catalogStatus = ref<LoadingStatus>('idle');
     const catalogErrorEventId = ref<string | null>(null);
-    // 点位数据由 game 持有；这里仅记录异步加载生命周期，控制何时允许进入 PLAYING。
+    const gameStartStatus = ref<LoadingStatus>('idle');
+    const gameStartErrorEventId = ref<string | null>(null);
     const pointsStatus = ref<LoadingStatus>('idle');
     const pointsErrorEventId = ref<string | null>(null);
+    const gradeUploadStatus = ref<LoadingStatus>('idle');
+    const gradeUploadErrorEventId = ref<string | null>(null);
+    const scorePercentile = ref<string | null>(null);
+    const rank = ref<string | null>(null);
+    const preparationCredentials = ref<PreparationCredentials | null>(null);
 
-    // Epoch 用于废弃旧请求和旧结束回调，防止返回、重试后被过期异步结果覆盖。
+    let startEpoch = 0;
     let pointsEpoch = 0;
+    let uploadEpoch = 0;
     let finishingEpoch = 0;
-    // 保存 FINISHING 到 RESULTS 的延迟句柄，以便 reset、back 或 retry 时取消。
+    let uploadPromise: Promise<void> | null = null;
     let resultsTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const presentation = computed(() => PRESENTATION[phase.value.kind]);
+
+    const canUploadGrade = computed(() => {
+        if (phase.value.kind !== 'RESULTS') return false;
+        if (!userStore.nickname) return false;
+        if (gameStartStatus.value !== 'ready' || pointsStatus.value !== 'ready') return false;
+        if (gradeUploadStatus.value === 'loading' || gradeUploadStatus.value === 'ready') return false;
+
+        const completedPoints = game.completedPoints();
+        const statistics = game.statistics;
+        return completedPoints.length > 0 && statistics !== undefined && statistics.point > 0;
+    });
 
     const requirePhase = (...allowed: GamePhase['kind'][]): void => {
         if (!allowed.includes(phase.value.kind)) {
@@ -80,7 +112,7 @@ export const useGameStore = defineStore('game', () => {
         }
     };
 
-    const cancelResultsDelay = (): void => {
+    const clearResultsDelay = (): void => {
         finishingEpoch++;
         if (resultsTimeout !== null) {
             clearTimeout(resultsTimeout);
@@ -88,9 +120,94 @@ export const useGameStore = defineStore('game', () => {
         }
     };
 
-    const invalidateAsync = (): void => {
+    const invalidateRequests = (): void => {
+        startEpoch++;
         pointsEpoch++;
-        cancelResultsDelay();
+        uploadEpoch++;
+        uploadPromise = null;
+        clearResultsDelay();
+    };
+
+
+    const resetTransientState = (): void => {
+        gameStartStatus.value = 'idle';
+        gameStartErrorEventId.value = null;
+        pointsStatus.value = 'idle';
+        pointsErrorEventId.value = null;
+        gradeUploadStatus.value = 'idle';
+        gradeUploadErrorEventId.value = null;
+        scorePercentile.value = null;
+        rank.value = null;
+        uploadPromise = null;
+    };
+
+    const enterPlayingWhenReady = (): void => {
+        if (
+            phase.value.kind !== 'COUNTDOWN'
+            || !phase.value.countdownElapsed
+            || gameStartStatus.value !== 'ready'
+            || pointsStatus.value !== 'ready'
+        ) {
+            return;
+        }
+        mapStore.enableGameInteraction();
+        phase.value = { kind: 'PLAYING' };
+    };
+
+    const reportAndMaybeClearAuthentication = (error: unknown): void => {
+        if (!isUnauthorized(error)) return;
+        clearAuthentication();
+        userStore.clearNickname();
+    };
+
+    const startGameRequest = (projectId: number): void => {
+        const requestEpoch = ++startEpoch;
+        gameStartStatus.value = 'loading';
+        gameStartErrorEventId.value = null;
+
+        void startGame(projectId).then((response: GameStartResult) => {
+            if (requestEpoch !== startEpoch) return;
+            preparationCredentials.value = {
+                startTime: response.start_time,
+                startKey: response.start_key
+            };
+            gameStartStatus.value = 'ready';
+            enterPlayingWhenReady();
+        }).catch(error => {
+            if (requestEpoch !== startEpoch) return;
+            preparationCredentials.value = null;
+            reportAndMaybeClearAuthentication(error);
+            const normalizedError = toError(error);
+            gameStartErrorEventId.value = reportException(normalizedError) ?? null;
+            gameStartStatus.value = 'error';
+        });
+    };
+
+    const loadPoints = (projectId: number, pointsApiUrl: string): void => {
+        const requestEpoch = ++pointsEpoch;
+        pointsStatus.value = 'loading';
+        pointsErrorEventId.value = null;
+        game.setPoints([]);
+
+        api.get<PointDetail[]>(pointsApiUrl, { noBaseUrl: true })
+            .then(response => {
+                if (requestEpoch !== pointsEpoch) return;
+                if (Number.isNaN(projectId)) {
+                    throw new Error('Cannot load points for an invalid project id');
+                }
+                game.setPoints(response);
+                response.forEach(point => {
+                    if (point.image) preloadImage(point.image);
+                });
+                pointsStatus.value = 'ready';
+                enterPlayingWhenReady();
+            })
+            .catch(error => {
+                if (requestEpoch !== pointsEpoch) return;
+                const normalizedError = toError(error);
+                pointsErrorEventId.value = reportException(normalizedError) ?? null;
+                pointsStatus.value = 'error';
+            });
     };
 
     const initialize = async (): Promise<void> => {
@@ -112,49 +229,11 @@ export const useGameStore = defineStore('game', () => {
         }
     };
 
-    const enterPlayingWhenReady = (): void => {
-        if (
-            phase.value.kind !== 'COUNTDOWN'
-            || !phase.value.countdownElapsed
-            || pointsStatus.value !== 'ready'
-        ) {
-            return;
-        }
-        mapStore.enableGameInteraction();
-        phase.value = { kind: 'PLAYING' };
-    };
-
-    const loadPoints = (): void => {
-        const bangumi = game.bangumi;
-        if (!bangumi) {
-            throw new Error('Cannot load points without a selected bangumi');
-        }
-
-        const requestEpoch = ++pointsEpoch;
-        pointsStatus.value = 'loading';
-        pointsErrorEventId.value = null;
-        game.setPoints([]);
-
-        api.get<PointDetail[]>(bangumi.points_api_url, { noBaseUrl: true })
-            .then(response => {
-                if (requestEpoch !== pointsEpoch) return;
-                game.setPoints(response);
-                response.forEach(point => {
-                    if (point.image) preloadImage(point.image);
-                });
-                pointsStatus.value = 'ready';
-                enterPlayingWhenReady();
-            })
-            .catch(error => {
-                if (requestEpoch !== pointsEpoch) return;
-                const normalizedError = toError(error);
-                pointsErrorEventId.value = reportException(normalizedError) ?? null;
-                pointsStatus.value = 'error';
-            });
-    };
-
     const startSinglePlayerGame = (): void => {
         requirePhase('WELCOME');
+        invalidateRequests();
+        resetTransientState();
+        game.reset();
         game.start('SINGLE');
         phase.value = userStore.nickname ? { kind: 'SELECTING' } : { kind: 'AUTH' };
     };
@@ -180,25 +259,29 @@ export const useGameStore = defineStore('game', () => {
     const back = (): void => {
         requirePhase('AUTH', 'RANK', 'SELECTING', 'FINISHING', 'RESULTS');
         const resetMap = phase.value.kind === 'FINISHING' || phase.value.kind === 'RESULTS';
-        invalidateAsync();
+        invalidateRequests();
+        resetTransientState();
         if (resetMap) mapStore.reset();
         game.reset();
-        pointsStatus.value = 'idle';
-        pointsErrorEventId.value = null;
         phase.value = { kind: 'WELCOME' };
     };
 
-    const selectBangumi = (id: string): void => {
+    const selectBangumi = (id: number): void => {
         requirePhase('SELECTING');
         const bangumi = catalog.value.find(item => item.id === id);
         if (!bangumi) {
             throw new Error(`Bangumi with id ${id} not found`);
         }
 
+        invalidateRequests();
+        resetTransientState();
+        preparationCredentials.value = null;
         mapStore.stopAnimationAndJump(reverseCoordinate(bangumi.geo), bangumi.zoom);
         game.selectBangumi(bangumi);
         phase.value = { kind: 'COUNTDOWN', countdownElapsed: false };
-        loadPoints();
+        const projectId = bangumi.id;
+        startGameRequest(projectId);
+        loadPoints(projectId, bangumi.points_api_url);
     };
 
     const countdownElapsed = (): void => {
@@ -207,12 +290,36 @@ export const useGameStore = defineStore('game', () => {
         enterPlayingWhenReady();
     };
 
-    const retryPointLoading = (): void => {
+    const retryPreparation = (): void => {
         requirePhase('COUNTDOWN');
-        if (pointsStatus.value !== 'error') {
-            throw new Error('Point loading can only be retried after an error');
+        if (gameStartStatus.value === 'loading' || pointsStatus.value === 'loading') {
+            throw new Error('Preparation can only be retried after requests settle');
         }
-        loadPoints();
+        if (gameStartStatus.value !== 'error' && pointsStatus.value !== 'error') {
+            throw new Error('Preparation can only be retried after a start or point failure');
+        }
+
+        invalidateRequests();
+
+        if (gameStartStatus.value === 'error') preparationCredentials.value = null;
+        if (gameStartStatus.value === 'error') {
+            gameStartStatus.value = 'loading';
+            gameStartErrorEventId.value = null;
+            if (game.bangumiId === null) {
+                throw new Error('Cannot retry preparation without a valid project id');
+            }
+            startGameRequest(game.bangumiId);
+        }
+
+        if (pointsStatus.value === 'error') {
+            pointsStatus.value = 'loading';
+            pointsErrorEventId.value = null;
+            const bangumi = game.bangumi;
+            if (!bangumi) {
+                throw new Error('Cannot retry preparation without a selected bangumi');
+            }
+            loadPoints(bangumi.id, bangumi.points_api_url);
+        }
     };
 
     const revealCheatTarget = (): void => {
@@ -272,22 +379,82 @@ export const useGameStore = defineStore('game', () => {
             throw new Error('Cannot retry without a selected bangumi');
         }
 
-        invalidateAsync();
+        invalidateRequests();
+        gradeUploadStatus.value = 'idle';
+        gradeUploadErrorEventId.value = null;
+        scorePercentile.value = null;
+        rank.value = null;
+        preparationCredentials.value = null;
         mapStore.clearMarkers();
         mapStore.stopAnimationAndJump(reverseCoordinate(bangumi.geo), bangumi.zoom);
+        clearCompletedPointProgress(game);
         game.resetResult();
         pointsStatus.value = 'ready';
         pointsErrorEventId.value = null;
+        gameStartStatus.value = 'loading';
+        gameStartErrorEventId.value = null;
         phase.value = { kind: 'COUNTDOWN', countdownElapsed: false };
+        startGameRequest(bangumi.id);
     };
 
     const reset = (): void => {
-        invalidateAsync();
+        invalidateRequests();
+        resetTransientState();
+        preparationCredentials.value = null;
         mapStore.reset();
         game.reset();
-        pointsStatus.value = 'idle';
-        pointsErrorEventId.value = null;
         phase.value = { kind: 'WELCOME' };
+    };
+
+    const uploadGrade = (turnstileToken: string): Promise<void> => {
+        requirePhase('RESULTS');
+        if (gradeUploadStatus.value === 'loading') {
+            return uploadPromise ?? Promise.resolve();
+        }
+        if (!canUploadGrade.value) {
+            throw new Error('Cannot upload grade during the current game state');
+        }
+
+        const bangumi = game.bangumi;
+        const statistics = game.statistics;
+        if (!bangumi || !statistics) {
+            throw new Error('Cannot upload grade without a finished game');
+        }
+        const credentials = preparationCredentials.value;
+        if (!credentials) {
+            throw new Error('Cannot upload grade without start credentials');
+        }
+
+        const requestEpoch = ++uploadEpoch;
+        gradeUploadStatus.value = 'loading';
+        gradeUploadErrorEventId.value = null;
+
+        uploadPromise = submitGrade({
+            start_time: credentials.startTime,
+            start_key: credentials.startKey,
+            id: bangumi.id,
+            point_num: game.completedPoints().length,
+            score: statistics.point,
+            turnstile_token: turnstileToken
+        }).then((result: GradeUploadResult) => {
+            if (requestEpoch !== uploadEpoch) return;
+            gradeUploadStatus.value = 'ready';
+            scorePercentile.value = result.score_percentile;
+            rank.value = result.rank;
+        }).catch(error => {
+            if (requestEpoch !== uploadEpoch) return;
+            reportAndMaybeClearAuthentication(error);
+            const normalizedError = toError(error);
+            gradeUploadErrorEventId.value = reportException(normalizedError) ?? null;
+            gradeUploadStatus.value = 'error';
+            throw error;
+        }).finally(() => {
+            if (requestEpoch === uploadEpoch) {
+                uploadPromise = null;
+            }
+        });
+
+        return uploadPromise;
     };
 
     return {
@@ -296,8 +463,15 @@ export const useGameStore = defineStore('game', () => {
         catalog,
         catalogStatus,
         catalogErrorEventId,
+        gameStartStatus,
+        gameStartErrorEventId,
         pointsStatus,
         pointsErrorEventId,
+        gradeUploadStatus,
+        gradeUploadErrorEventId,
+        scorePercentile,
+        rank,
+        canUploadGrade,
         presentation,
         initialize,
         startSinglePlayerGame,
@@ -307,11 +481,13 @@ export const useGameStore = defineStore('game', () => {
         back,
         selectBangumi,
         countdownElapsed,
-        retryPointLoading,
+        retryPreparation,
+        retryPointLoading: retryPreparation,
         nextPoint,
         submitAnswer,
         gameOver,
         retry,
-        reset
+        reset,
+        uploadGrade,
     };
 });
