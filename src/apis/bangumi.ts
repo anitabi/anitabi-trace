@@ -1,21 +1,32 @@
-import { api } from "./api";
+import { api } from './api';
+
 interface BangumiResponse {
     fields: string[];
     rows: unknown[][];
 }
-export const getDefaultBangumi = () => api.get<BangumiResponse>("/bangumi").then(res => {
+
+export const getDefaultBangumi = () => api.get<BangumiResponse>('/bangumi').then(res => {
     if (!Array.isArray(res.rows) || !Array.isArray(res.fields)) {
-        throw new Error("Invalid response format");
+        throw new Error('Invalid response format');
     }
+
     return res.rows.map(row => {
         const bangumi: Record<string, unknown> = {};
         res.fields.forEach((field, index) => {
             bangumi[field] = row[index];
         });
-        bangumi["points_api_url"] = `https://api.anitabi.cn/bangumi/${bangumi["id"]}/points/detail`;
+
+        const id = typeof bangumi.id === 'number' ? bangumi.id : Number(bangumi.id);
+        if (!Number.isInteger(id)) {
+            throw new Error('Invalid bangumi id');
+        }
+
+        bangumi.id = id;
+        bangumi.points_api_url = `https://api.anitabi.cn/bangumi/${id}/points/detail`;
         return bangumi as unknown as DefaultBangumi;
     });
 });
+
 //   "fields": [
 //     "id",
 //     "name",
@@ -39,7 +50,7 @@ export const getDefaultBangumi = () => api.get<BangumiResponse>("/bangumi").then
 //       8.2
 //     ],
 export interface DefaultBangumi {
-    id: string;
+    id: number;
     name: string | null;
     cover: string;
     color: string | 0;
@@ -47,6 +58,7 @@ export interface DefaultBangumi {
     geo: [number, number];
     zoom: number;
 }
+
 // {
 //     "id": "5fdjx5dtf",
 //     "name": "神明社",
@@ -60,7 +72,7 @@ export interface DefaultBangumi {
 //     "origin": "Google Maps",
 //     "originURL": "https://www.google.com/maps/d/viewer?mid=1VrYBsUvFfF3bQKP2rrAJ5WzVHzse86k4&ll=34.885423%2C136.839803&z=17"
 // }
-export interface PointDetail{
+export interface PointDetail {
     id: string;
     name: string;
     image?: string;

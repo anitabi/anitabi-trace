@@ -28,6 +28,11 @@ const clearStoredAuth = (): void => {
     localStorage.removeItem(AUTH_STORAGE_KEY);
 };
 
+export const clearAuthentication = (): void => {
+    clearStoredAuth();
+    refreshPromise = null;
+};
+
 const getStoredAuth = (): AuthResult | null => {
     const serialized = localStorage.getItem(AUTH_STORAGE_KEY);
     if (!serialized) return null;
