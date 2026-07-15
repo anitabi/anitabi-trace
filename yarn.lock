@@ -481,6 +481,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@fingerprintjs/fingerprintjs@npm:^5.2.0":
+  version: 5.2.0
+  resolution: "@fingerprintjs/fingerprintjs@npm:5.2.0"
+  checksum: 10c0/badcd956d4d7eba0d6ca657cf71c8309559f7606e51239d47f20160a03c45689264f52304f7d1a1cdf0fecca7cdce58c50575deb82ff5e09412e01d87949d61c
+  languageName: node
+  linkType: hard
+
 "@hapi/bourne@npm:^3.0.0":
   version: 3.0.0
   resolution: "@hapi/bourne@npm:3.0.0"
@@ -3501,6 +3508,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "anitabi-trace@workspace:."
   dependencies:
+    "@fingerprintjs/fingerprintjs": "npm:^5.2.0"
     "@sentry/vue": "npm:^10.65.0"
     "@tailwindcss/vite": "npm:^4.1.8"
     "@turf/turf": "npm:^7.2.0"
