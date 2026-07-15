@@ -1,4 +1,3 @@
-
 <template>
     <button class="absolute top-10 left-10 text-white flex flex-col underline-text pointer-events-auto" @click="handleBack">
         <span class="text-medium">返回</span>
@@ -18,17 +17,17 @@
                     :class="{ 'bangumi-list-shell--overflow': filteredCatalog.length > 4 }">
                     <div ref="bangumiList" class="bangumi-list grid grid-cols-[repeat(4,212px)] w-full h-full overflow-y-auto overflow-x-hidden justify-start"
                         @scroll.passive="loadVisibleCovers">
-                    <div v-for="item in filteredCatalog" :key="item.id" class="text-center pointer-events-auto">
-                        <img :src="loadedCoverIds.has(item.id) ? `${item.cover}?plan=h360` : undefined"
-                            class="w-[180px] h-[225px] object-cover m-4 rounded-lg bg-gray-200 shadow-lg border-[4px] hover:scale-110 hover:opacity-100"
-                            :class="{ 'scale-110': bangumiId === item.id, 'opacity-40': bangumiId !== null && bangumiId !== item.id }"
-                            :style="{ borderColor: item.color || '#0070e0' }"
-                            @click="bangumiId = item.id"
-                            />
-                        <span class="normal-font-family text-tiny"
-                            :class="{ 'opacity-40': bangumiId !== null && bangumiId !== item.id }">{{ item.name }}</span>
+                        <div v-for="item in filteredCatalog" :key="item.id" class="text-center pointer-events-auto">
+                            <img :src="loadedCoverIds.has(item.id) ? `${item.cover}?plan=h360` : undefined"
+                                class="w-[180px] h-[225px] object-cover m-4 rounded-lg bg-gray-200 shadow-lg border-[4px] hover:scale-110 hover:opacity-100"
+                                :class="{ 'scale-110': bangumiId === item.id, 'opacity-40': bangumiId !== null && bangumiId !== item.id }"
+                                :style="{ borderColor: item.color || '#0070e0' }"
+                                @click="bangumiId = item.id"
+                                />
+                            <span class="normal-font-family text-tiny"
+                                :class="{ 'opacity-40': bangumiId !== null && bangumiId !== item.id }">{{ item.name }}</span>
+                        </div>
                     </div>
-                </div>
                 </div>
             </div>
             <div v-if="gameStore.catalogStatus === 'loading' || gameStore.catalogStatus === 'idle'" class="m-auto text-2xl">加载中...</div>
@@ -47,10 +46,10 @@ import RequestError from '../components/RequestError.vue';
 import { useGameStore } from '../stores/game.ts';
 
 const gameStore = useGameStore();
-const bangumiId = ref<string | null>(null);
+const bangumiId = ref<number | null>(null);
 const searchQuery = ref('');
 const bangumiList = ref<HTMLElement | null>(null);
-const loadedCoverIds = ref(new Set<string>());
+const loadedCoverIds = ref(new Set<number>());
 const filteredCatalog = computed(() => {
     const query = searchQuery.value.trim().toLocaleLowerCase();
     if (query === '') return gameStore.catalog;
