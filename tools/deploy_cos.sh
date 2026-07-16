@@ -35,7 +35,7 @@ require_env COS_SECRET_KEY
 require_env COS_BUCKET
 require_env COS_REGION
 
-dist_dir="${DIST_DIR:-dist}"
+dist_dir='dist'
 target_dir="$(normalize_target_dir "${COS_TARGET_DIR:-/}")"
 
 if [[ ! -d "$dist_dir" ]]; then
