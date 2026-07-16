@@ -17,7 +17,8 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
-    build-and-deploy:
+    ci:
+        if: github.event_name == 'pull_request'
         runs-on: ubuntu-latest
         env:
             VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
@@ -59,18 +60,59 @@ jobs:
             - name: Build application
               run: yarn build
 
+    deploy:
+        if: github.event_name != 'pull_request'
+        runs-on: ubuntu-latest
+        environment: production
+        env:
+            VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+            VITE_MAPBOX_ACCESS_TOKEN: ${{ secrets.VITE_MAPBOX_ACCESS_TOKEN }}
+            VITE_ANITABI_QQ_GROUP_LINK: ${{ vars.VITE_ANITABI_QQ_GROUP_LINK }}
+            VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
+            VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+        steps:
+            - name: Check out repository
+              uses: actions/checkout@v4
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+
+            - name: Enable Corepack
+              run: corepack enable
+
+            - name: Locate Yarn cache
+              id: yarn-cache
+              shell: bash
+              run: echo "path=$(yarn config get cacheFolder)" >> "$GITHUB_OUTPUT"
+
+            - name: Cache Yarn packages
+              uses: actions/cache@v4
+              with:
+                  path: ${{ steps.yarn-cache.outputs.path }}
+                  key: yarn-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+                  restore-keys: |
+                      yarn-${{ runner.os }}-
+
+            - name: Install dependencies
+              run: yarn install --immutable
+
+            - name: Run tests
+              run: yarn test
+
+            - name: Build application
+              run: yarn build
+
             - name: Set up Python
-              if: github.event_name != 'pull_request'
               uses: actions/setup-python@v5
               with:
                   python-version: '3.11'
 
             - name: Install COSCMD
-              if: github.event_name != 'pull_request'
               run: python -m pip install coscmd==1.9.0.6
 
             - name: Deploy to COS
-              if: github.event_name != 'pull_request'
               env:
                   COS_SECRET_ID: ${{ secrets.COS_SECRET_ID }}
                   COS_SECRET_KEY: ${{ secrets.COS_SECRET_KEY }}
