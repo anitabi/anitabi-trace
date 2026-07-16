@@ -3,7 +3,7 @@
         ${pointImage.state === 'full' ? 'w-[432px] top-[179px]' : 'w-[184px] top-[43px]'}`"
         @click="pointImage.state = pointImage.state === 'full' ? 'minimal' : 'full'" />
     <h1 class="text-normal mt-[48px] text-center">{{ gameStore.game.mode === 'SINGLE' ? '单人模式' : '线上对战' }}</h1>
-    <h1 class="text-tiny mt-[5px] text-center">{{ gameStore.game.bangumi?.name }}</h1>
+    <h1 class="text-tiny mt-[5px] text-center normal-font-family">{{ gameStore.game.bangumi?.name }}</h1>
     <div class="absolute top-[34px] left-[34px] flex flex-col items-start">
         <div class="flex flex-row justify-start items-center">
             <span class="text-huge mr-[15px]">{{ gameStore.game.point }}</span>

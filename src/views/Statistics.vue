@@ -11,7 +11,7 @@
             </div>
             <div>
                 <h1 class="text-large mt-[48px] text-center">单人计时</h1>
-                <h1 class="text-medium mt-[5px] text-center">{{ gameStore.game.bangumi?.name || '' }}</h1>
+                <h1 class="text-medium mt-[5px] text-center normal-font-family">{{ gameStore.game.bangumi?.name || '' }}</h1>
             </div>
             <div class="flex flex-col items-end">
                 <div class="flex flex-row justify-end items-center">
