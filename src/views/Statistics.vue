@@ -165,7 +165,8 @@ const handleGenerateImg = async () => {
     ctx.fillStyle = 'white';
     ctx.font = `${48 * dpr}px ${ssoFontCss.family}`;
     ctx.fillText('单人计时', canvas.width / 2, 60 * dpr);
-
+    ctx.font = `${48 * dpr}px "Helvetica Neue",Helvetica,Arial,"Microsoft Yahei","Hiragino Sans GB","Heiti SC","WenQuanYi Micro Hei",sans-serif`; 
+    ctx.fillText(gameStore.game.bangumi?.name || '', canvas.width / 2, (60 + 64) * dpr);
     ctx.textAlign = 'left';
     ctx.font = `${144 * dpr}px ${ssoFontCss.family}`;
     ctx.fillText(`${gameStore.game.statistics?.point ?? 0}`, 34 * dpr, 74 * dpr);
@@ -198,7 +199,7 @@ const handleGenerateImg = async () => {
     ctx.font = `${36 * dpr}px ${ssoFontCss.family}`;
     ctx.fillText(generateDateString(), canvas.width - 34 * dpr, canvas.height - 41 * dpr);
 
-    ctx.font = `${48 * dpr}px `;
+    ctx.font = `${48 * dpr}px "Helvetica Neue",Helvetica,Arial,"Microsoft Yahei","Hiragino Sans GB","Heiti SC","WenQuanYi Micro Hei",sans-serif`;
     ctx.fillText(`${userStore.nickname}`, canvas.width - 34 * dpr, canvas.height - 103 * dpr);
 
     ctx.font = `${24 * dpr}px ${ssoFontCss.family}`;
