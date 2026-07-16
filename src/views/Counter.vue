@@ -1,6 +1,6 @@
 <template>
     <h1 class="text-normal mt-[48px] text-center">{{ gameStore.game.mode === 'SINGLE' ? '单人模式' : '线上对战' }}</h1>
-    <h1 class="text-tiny mt-[5px] text-center">{{ gameStore.game.bangumi?.name }}</h1>
+    <h1 class="text-tiny mt-[5px] text-center normal-font-family">{{ gameStore.game.bangumi?.name }}</h1>
 
     <div class="absolute inset-0 flex items-center justify-center">
         <transition name="countdown">
