@@ -330,6 +330,18 @@ export const useGameStore = defineStore('game', () => {
         }
     };
 
+    const beginPointSequence = (): Finished | UpdatePointData => {
+        requirePhase('PLAYING');
+        const point = game.currentPoint();
+        if (!point) return { type: 'finished' };
+
+        revealCheatTarget();
+        return {
+            type: 'updatePoint',
+            image: point.image || ''
+        };
+    };
+
     const nextPoint = (): Finished | UpdatePointData => {
         requirePhase('PLAYING');
         const next = game.nextPoint();
@@ -483,6 +495,7 @@ export const useGameStore = defineStore('game', () => {
         countdownElapsed,
         retryPreparation,
         retryPointLoading: retryPreparation,
+        beginPointSequence,
         nextPoint,
         submitAnswer,
         gameOver,

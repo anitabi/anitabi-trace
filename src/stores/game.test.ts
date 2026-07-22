@@ -327,6 +327,29 @@ describe('point loading gates and epochs', () => {
         }
     );
 
+    it('starts with the first loaded point before advancing to the second', async () => {
+        mocks.apiGet.mockResolvedValue([gamePoint('first'), gamePoint('second')]);
+        mocks.mapStore.drawConnectionAndPoints.mockReturnValue(1);
+        mocks.userStore.nickname = 'player';
+        const store = await storeWithCatalog();
+
+        store.startSinglePlayerGame();
+        store.selectBangumi(BANGUMI_A.id);
+        await settleAsyncActions();
+        store.countdownElapsed();
+
+        expect(store.beginPointSequence()).toEqual({ type: 'updatePoint', image: 'first.jpg' });
+        expect(store.game.currentIndex).toBe(0);
+        store.submitAnswer();
+
+        expect(store.nextPoint()).toEqual({ type: 'updatePoint', image: 'second.jpg' });
+        expect(store.game.currentIndex).toBe(1);
+        store.submitAnswer();
+
+        expect(store.nextPoint()).toEqual({ type: 'finished' });
+        expect(store.game.completedPoints().map(point => point.id)).toEqual(['first', 'second']);
+    });
+
     it('ignores a slow point response from an invalidated epoch', async () => {
         const staleRequest = deferred<PointDetail[]>();
         const currentRequest = deferred<PointDetail[]>();

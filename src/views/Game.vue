@@ -83,7 +83,7 @@ const nextPoint = (next: UpdatePointData | Finished) => {
 };
 onMounted(() => {
     timer.setLeft(Game.GAME_TIME_SECONDS);
-    nextPoint(gameStore.nextPoint());
+    nextPoint(gameStore.beginPointSequence());
 });
 const handleConfirmPoint = async () => {
     inSelection.value = false;
