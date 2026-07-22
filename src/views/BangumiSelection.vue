@@ -7,10 +7,10 @@
             <h1 class="text-huge">单人计时</h1>
             <h2 class="text-normal mt-[22px]">选择进行游戏的作品</h2>
         </div>
-        <div class="mt-[10vh] w-full flex flex-col">
+        <div class="mt-[10px] w-full flex flex-col">
             <div class="w-[848px] max-w-full mx-auto flex flex-col items-center">
                 <input v-model="searchQuery" type="search" name="bangumi-search"
-                    class="search-input pointer-events-auto w-1/2 max-w-[500px] mb-[31px] normal-font-family"
+                    class="search-input pointer-events-auto w-1/2 max-w-[300px] mb-[5px] normal-font-family"
                     placeholder="搜索番剧"
                     :style="{ '--placeholder-font-family': ssoFontCss.family }" />
                 <div class="bangumi-list-shell relative w-full h-[330px]"
@@ -135,7 +135,7 @@ const handleStart = () => {
     border-color: #FFFFFF;
     padding: 18px 20px;
     outline: none;
-    font-size: 28px;
+    font-size: 22px;
     text-align: center;
     height: 64px;
     color: #FFFFFF;
