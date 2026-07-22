@@ -4,13 +4,13 @@ import { Game, type GamePoint } from './game';
 
 const point = (id: string): GamePoint => ({
     id,
-    name: `point-${id}`,
+    // name: `point-${id}`,
     image: `${id}.jpg`,
-    ep: null,
-    s: null,
+    // ep: null,
+    // s: null,
     geo: [35, 139],
-    origin: null,
-    originURL: null
+    // origin: null,
+    // originURL: null
 });
 
 describe('Game scoring', () => {
