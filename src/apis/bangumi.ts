@@ -22,7 +22,7 @@ export const getDefaultBangumi = () => api.get<BangumiResponse>('/bangumi').then
         }
 
         bangumi.id = id;
-        bangumi.points_api_url = `https://api.anitabi.cn/bangumi/${id}/points/detail`;
+        bangumi.points_api_url = `/bangumi/${id}/lite`;
         return bangumi as unknown as DefaultBangumi;
     });
 });
@@ -74,11 +74,11 @@ export interface DefaultBangumi {
 // }
 export interface PointDetail {
     id: string;
-    name: string;
+    // name: string;
     image?: string;
-    ep: string | null;
-    s: number | null;
+    // ep: string | null;
+    // s: number | null;
     geo: [number, number];
-    origin: string | null;
-    originURL: string | null;
+    // origin: string | null;
+    // originURL: string | null;
 }

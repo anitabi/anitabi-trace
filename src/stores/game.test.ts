@@ -89,13 +89,13 @@ const BANGUMI_B: DefaultBangumi = {
 
 const gamePoint = (id: string): PointDetail => ({
     id,
-    name: `point-${id}`,
+    // name: `point-${id}`,
     image: `${id}.jpg`,
-    ep: null,
-    s: null,
+    // ep: null,
+    // s: null,
     geo: [35.5, 139.5],
-    origin: null,
-    originURL: null
+    // origin: null,
+    // originURL: null
 });
 
 const deferred = <T>() => {

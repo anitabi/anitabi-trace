@@ -189,7 +189,7 @@ export const useGameStore = defineStore('game', () => {
         pointsErrorEventId.value = null;
         game.setPoints([]);
 
-        api.get<PointDetail[]>(pointsApiUrl, { noBaseUrl: true })
+        api.get<PointDetail[]>(pointsApiUrl)
             .then(response => {
                 if (requestEpoch !== pointsEpoch) return;
                 if (Number.isNaN(projectId)) {

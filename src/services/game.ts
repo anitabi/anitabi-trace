@@ -34,13 +34,13 @@ export interface GameBangumi {
 
 export interface GamePoint {
     id: string;
-    name: string;
+    // name: string;
     image?: string;
-    ep: string | null;
-    s: number | null;
+    // ep: string | null;
+    // s: number | null;
     geo: [number, number];
-    origin: string | null;
-    originURL: string | null;
+    // origin: string | null;
+    // originURL: string | null;
 }
 
 export interface PointResult {
